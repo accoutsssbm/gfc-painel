@@ -116,12 +116,20 @@ table.dark th.gh.b{color:var(--cat-yellow);}
 .legend-box{background:#FAFAF8;border-radius:10px;padding:14px 16px;margin-bottom:16px;font-size:.78rem;color:var(--ink);line-height:1.55;}
 .legend-box h5{margin:0 0 8px 0;font-size:.72rem;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);}
 .legend-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:6px 26px;}
-.niv-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
-.niv-card{border-radius:10px;padding:10px 12px;background:#FAFAF8;}
+.niv-grid{display:block;}
+.niv-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;page-break-inside:avoid;break-inside:avoid;}
+.niv-card{border-radius:10px;padding:10px 12px;background:#FAFAF8;page-break-inside:avoid;break-inside:avoid;}
+.niv-card h3{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+#tabelaDetalhes tr{page-break-inside:avoid;break-inside:avoid;}
+#tabelaDetalhes thead{display:table-header-group;}
+.rep-head td{background:#2B2B2B;color:var(--cat-yellow);font-weight:700;font-size:.66rem;text-transform:uppercase;letter-spacing:.3px;padding:7px 11px;white-space:nowrap;}
+.gantt-wrap{background:#fff;border-radius:6px;padding:10px;margin-bottom:10px;page-break-inside:avoid;break-inside:avoid;}
+.gantt-cont{font-size:.7rem;color:#6B6E73;font-weight:700;text-transform:uppercase;letter-spacing:.4px;margin:0 0 4px 2px;}
+.pdf-mode .table-container{max-height:none !important;overflow:visible !important;}
 .niv-card h3{margin:0;font-size:.85rem;text-transform:uppercase;border-left:4px solid var(--cat-yellow);padding-left:8px;color:var(--ink);}
 .xref-note{font-size:.7rem;color:var(--muted);margin-top:4px;}
-@media(max-width:900px){.niv-grid{grid-template-columns:1fr;}}
-@media print{.sticky-top{position:static !important;}.niv-grid{grid-template-columns:1fr 1fr;}}
+@media(max-width:900px){.niv-row{grid-template-columns:1fr;}}
+@media print{.sticky-top{position:static !important;}.table-container{max-height:none !important;overflow:visible !important;}}
 .base-badge{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.3px;padding:7px 12px;border-radius:8px;background:#2A2C30;color:#B5B7BB;white-space:nowrap;}
 .base-badge.online{background:var(--cat-yellow);color:var(--ink);}
 .base-badge.cache{background:transparent;color:var(--cat-yellow);border:1px solid var(--cat-yellow);}
@@ -276,10 +284,10 @@ canvas{max-width:100%;}
 <table class="dark" id="tabelaVencidos"><thead><tr><th>TAG</th><th>Componente</th><th>Vida Atual</th><th>Vida Útil</th><th>Data Troca</th></tr></thead><tbody></tbody></table></div></div>
 <div id="resultadosContainer" style="display:none;">
 <div class="section break-inside-avoid"><h2>Parque Necessário: Ciclo + Segurança</h2><p style="font-size:12px;color:#6B6E73;margin:-6px 0 12px 0;">Unidades que precisam existir <b>ao mesmo tempo</b> (pico simultâneo), não compras no ano.</p><div class="resumo-grid" id="kResults"></div></div>
-<div class="section break-inside-avoid"><h2>Necessidade de Parque por Ano</h2>
+<div class="section"><h2>Necessidade de Parque por Ano</h2>
 <p style="font-size:12px;color:#6B6E73;margin:-6px 0 12px 0;">A tabela separa <b>duas coisas diferentes</b>. À esquerda, <b>eventos</b>: quantas trocas acontecem no ano (somam entre si). À direita, <b>parque</b>: quantas unidades precisam existir <b>ao mesmo tempo</b> para sustentar o fluxo troca &rarr; recuperação &rarr; retorno (é um pico simultâneo, <b>não soma entre anos</b>). A falha antecipada muda a <i>data</i> da troca, não cria uma troca a mais — por isso ela pressiona o pico, e não o total de trocas.</p>
 <div class="table-container" style="background:transparent;padding:0;"><table class="dark"><thead><tr><th rowspan="2">COMPONENTE</th><th rowspan="2">ANO</th><th class="gh" colspan="2">EVENTOS NO ANO &nbsp;(somam)</th><th class="gh b grp-a" colspan="3">PARQUE NECESSÁRIO &nbsp;(pico simultâneo — não soma)</th></tr><tr><th>TROCAS PLANEJADAS</th><th>ANTECIPADAS POR FALHA</th><th class="grp-a">SÓ O CICLO</th><th>COM FALHAS (NÍVEL SERVIÇO)</th><th>SEGURANÇA (+)</th></tr></thead><tbody id="segBody"></tbody></table></div></div>
-<div class="section break-inside-avoid"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+<div class="section"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
 <h2 style="margin:0;">Gantt — Cronograma de Trocas</h2>
 <button class="secondary no-print" style="padding:6px 12px" onclick="downloadChart('ganttChart','Gantt','Cronograma de Trocas')">PNG</button></div>
 <div class="filter-bar no-print"><div style="flex:1;min-width:200px;"><label>Filtrar Componente</label><select id="filtroGanttComp"><option value="TODOS">Todos</option></select></div>
@@ -287,8 +295,8 @@ canvas{max-width:100%;}
 <div style="flex:.5;min-width:140px;"><label>Até</label><input type="date" id="filtroGanttFim"></div>
 <button class="mini-btn" style="padding:9px 14px" onclick="aplicarFiltroGantt()">Aplicar</button>
 <button class="mini-btn danger" style="padding:9px 14px" onclick="limparFiltroGantt()">Limpar</button></div>
-<div style="height:420px;background:#fff;border-radius:6px;padding:10px;"><canvas id="ganttChart"></canvas></div></div>
-<div class="section break-inside-avoid"><h2>Nivelamento Mensal (As-Is × To-Be)</h2>
+<div id="ganttWrap"></div></div>
+<div class="section"><h2>Nivelamento Mensal (As-Is × To-Be)</h2>
 <p style="font-size:12px;color:#6B6E73;margin:-6px 0 12px 0;">Barras pretas: distribuição original das trocas. Barras amarelas: distribuição depois do nivelamento. A janela mostra 12 meses por vez.</p>
 <div class="filter-bar no-print" id="nivelBar" style="display:none;">
 <div style="flex:1;min-width:220px;"><label>Início da janela (12 meses)</label><select id="nivelStart" onchange="renderNivelamento()"></select></div>
@@ -297,8 +305,8 @@ canvas{max-width:100%;}
 <span class="counter-badge" id="nivelRange"></span>
 </div>
 <div id="chartsContainer" class="niv-grid"></div></div>
-<div class="section break-inside-avoid"><h2>Cronograma Físico</h2>
-<div class="table-container" style="background:transparent;padding:0;max-height:600px;">
+<div class="section"><h2>Cronograma Físico</h2>
+<div class="table-container" id="cronoWrap" style="background:transparent;padding:0;max-height:600px;">
 <table class="dark" id="tabelaDetalhes"><thead><tr><th>COMPONENTE</th><th>TAG</th><th>VIDA ATUAL</th><th>HOR. PLANEJADO</th><th>RISCO F(t) COND.</th><th>DATA MÍN</th><th>DATA MÁX</th><th>PLAN. TROCA</th><th>RETORNO</th></tr></thead><tbody></tbody></table></div></div>
 </div>
 </div>
@@ -308,7 +316,7 @@ canvas{max-width:100%;}
 // ============ ONDE A BASE FICA PUBLICADA ============
 // Preencha os tres primeiros campos com os dados do seu repositorio privado.
 const GH_CFG={
-  owner:'accoutsssbm',
+  owner:'SEU_USUARIO_GITHUB',
   repo:'gfc-dados',
   branch:'main',
   hist:'dados/historico.json',
@@ -508,18 +516,81 @@ const sel=document.getElementById('nivelStart');const maxIni=Math.max(0,nivelMes
 function deslocarNivel(n){const sel=document.getElementById('nivelStart');const max=sel.options.length-1;let v=parseInt(sel.value||'0',10)+n;if(v<0)v=0;if(v>max)v=max;sel.value=String(v);renderNivelamento();}
 function renderNivelamento(){const cont=document.getElementById('chartsContainer');const ini=parseInt(document.getElementById('nivelStart').value||'0',10);const janela=nivelMeses.slice(ini,ini+12);document.getElementById('nivelRange').innerText=janela.length?(mesLabel(janela[0])+' a '+mesLabel(janela[janela.length-1])):'';
 Object.values(nivelCharts).forEach(c=>c.destroy());nivelCharts={};cont.innerHTML='';
-Object.keys(nivelData).sort().forEach(comp=>{const divId='chart_'+sanitize(comp);const wr=document.createElement('div');wr.className='niv-card break-inside-avoid';
-wr.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px;"><h3>'+comp+'</h3><button class="mini-btn no-print" onclick="downloadChart(\''+divId+'\',\'G_'+sanitize(comp)+'\',\''+comp+'\')">PNG</button></div><div style="height:185px;"><canvas id="'+divId+'"></canvas></div>';
-cont.appendChild(wr);const d=nivelData[comp];
-nivelCharts[comp]=new Chart(document.getElementById(divId),{type:'bar',data:{labels:janela.map(mesLabel),datasets:[{label:'Original (As-Is)',data:janela.map(m=>d.mI[m]||0),backgroundColor:'#15171A',borderRadius:0,borderSkipped:false},{label:'Nivelado (To-Be)',data:janela.map(m=>d.mO[m]||0),backgroundColor:'#FFCD11',borderColor:'#15171A',borderWidth:1,borderRadius:0,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'#15171A',boxWidth:12,font:{size:10}}}},scales:{y:{beginAtZero:true,ticks:{precision:0,color:'#15171A',font:{size:10}},grid:{color:'#E6E6E2'},title:{display:true,text:'Qtd Trocas',color:'#15171A',font:{size:10}}},x:{grid:{display:false},ticks:{color:'#15171A',font:{size:10}}}}}});});}
-function renderizarTabela(dados){const tb=document.querySelector('#tabelaDetalhes tbody');dados.slice(0,400).forEach(r=>{let st=r.ORIGEM==="Otimizado"?"color:#8A7000;font-weight:800;":"color:#15171A;font-weight:800;";let risco=r.RISCO!=null?(r.RISCO*100).toFixed(1)+'%':'—';let rc=r.RISCO!=null?(r.RISCO>0.3?'#15171A':r.RISCO>0.15?'#8A7000':'#6B6E73'):'#B5B7BB';tb.innerHTML+='<tr><td>'+r.COMPONENTE+'</td><td style="font-weight:bold;">'+r.TAG+'</td><td>'+Math.floor(r.VIDA).toLocaleString()+'</td><td style="font-weight:bold">'+Math.floor(r.HOR_PLANEJADO).toLocaleString()+'</td><td style="color:'+rc+';font-weight:bold">'+risco+'</td><td style="color:#6B6E73">'+fFull(r.T_MIN)+'</td><td style="color:#6B6E73">'+fFull(r.T_MAX)+'</td><td style="'+st+'">'+fYM(r.DATA_OTIMIZADA)+(r.IS_TRAVADO?" 🔒":"")+'</td><td><span class="mes-badge">'+fYM(r.DATA_DISPONIVEL)+'</span></td></tr>';});}
+const comps=Object.keys(nivelData).sort();let linha=null;
+comps.forEach((comp,idx)=>{if(idx%2===0){linha=document.createElement('div');linha.className='niv-row';cont.appendChild(linha);}
+const divId='chart_'+sanitize(comp);const wr=document.createElement('div');wr.className='niv-card';
+wr.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px;height:24px;"><h3>'+comp+'</h3><button class="mini-btn no-print" onclick="downloadChart(\''+divId+'\',\'G_'+sanitize(comp)+'\',\''+comp+'\')">PNG</button></div><div style="height:185px;"><canvas id="'+divId+'"></canvas></div>';
+linha.appendChild(wr);const d=nivelData[comp];
+nivelCharts[comp]=new Chart(document.getElementById(divId),{type:'bar',data:{labels:janela.map(mesLabel),datasets:[{label:'Original (As-Is)',data:janela.map(m=>d.mI[m]||0),backgroundColor:'#15171A',borderRadius:0,borderSkipped:false},{label:'Nivelado (To-Be)',data:janela.map(m=>d.mO[m]||0),backgroundColor:'#FFCD11',borderColor:'#15171A',borderWidth:1,borderRadius:0,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,animation:false,plugins:{legend:{position:'bottom',labels:{color:'#15171A',boxWidth:12,font:{size:10}}}},scales:{y:{beginAtZero:true,ticks:{precision:0,color:'#15171A',font:{size:10}},grid:{color:'#E6E6E2'},title:{display:true,text:'Qtd Trocas',color:'#15171A',font:{size:10}}},x:{grid:{display:false},ticks:{color:'#15171A',font:{size:10},maxRotation:0,autoSkip:false}}}}});});
+if(comps.length%2===1&&linha){const vazio=document.createElement('div');linha.appendChild(vazio);}}
+const CRONO_COLS=['COMPONENTE','TAG','VIDA ATUAL','HOR. PLANEJADO','RISCO F(t) COND.','DATA M\u00cdN','DATA M\u00c1X','PLAN. TROCA','RETORNO'];
+function renderizarTabela(dados){const tb=document.querySelector('#tabelaDetalhes tbody');tb.innerHTML='';const cab='<tr class="rep-head">'+CRONO_COLS.map(c=>'<td>'+c+'</td>').join('')+'</tr>';
+dados.forEach((r,ix)=>{if(ix>0&&ix%20===0)tb.innerHTML+=cab;let st=r.ORIGEM==="Otimizado"?"color:#8A7000;font-weight:800;":"color:#15171A;font-weight:800;";let risco=r.RISCO!=null?(r.RISCO*100).toFixed(1)+'%':'—';let rc=r.RISCO!=null?(r.RISCO>0.3?'#15171A':r.RISCO>0.15?'#8A7000':'#6B6E73'):'#B5B7BB';tb.innerHTML+='<tr><td>'+r.COMPONENTE+'</td><td style="font-weight:bold;">'+r.TAG+'</td><td>'+Math.floor(r.VIDA).toLocaleString()+'</td><td style="font-weight:bold">'+Math.floor(r.HOR_PLANEJADO).toLocaleString()+'</td><td style="color:'+rc+';font-weight:bold">'+risco+'</td><td style="color:#6B6E73">'+fFull(r.T_MIN)+'</td><td style="color:#6B6E73">'+fFull(r.T_MAX)+'</td><td style="'+st+'">'+fYM(r.DATA_OTIMIZADA)+(r.IS_TRAVADO?" 🔒":"")+'</td><td><span class="mes-badge">'+fYM(r.DATA_DISPONIVEL)+'</span></td></tr>';});}
 function popularFiltroGantt(){const sel=document.getElementById('filtroGanttComp');sel.innerHTML='<option value="TODOS">Todos</option>';[...new Set(planComps.map(p=>p.comp))].sort().forEach(c=>{const o=document.createElement('option');o.value=c;o.text=c;sel.appendChild(o);});}
 function limparFiltroGantt(){document.getElementById('filtroGanttComp').value="TODOS";document.getElementById('filtroGanttInicio').value="";document.getElementById('filtroGanttFim').value="";renderizarGantt(todasAsLinhas);}
 function aplicarFiltroGantt(){const comp=document.getElementById('filtroGanttComp').value,sS=document.getElementById('filtroGanttInicio').value,eS=document.getElementById('filtroGanttFim').value;const sd=sS?new Date(sS):null,ed=eS?new Date(eS):null;if(ed)ed.setHours(23,59,59,999);let f=todasAsLinhas.filter(it=>{const mc=(comp==="TODOS")||(it.COMPONENTE===comp);let md=true;if(sd&&it.DATA_OTIMIZADA<sd)md=false;if(ed&&it.DATA_OTIMIZADA>ed)md=false;return mc&&md;});renderizarGantt(f,sd,ed);}
-function renderizarGantt(dados,sOv=null,eOv=null){const ctx=document.getElementById('ganttChart').getContext('2d');if(window.myGantt)window.myGantt.destroy();if(!dados||!dados.length){window.myGantt=new Chart(ctx,{type:'bar',data:{labels:[],datasets:[]}});return;}let minDate=sOv;if(!minDate){minDate=new Date();minDate.setDate(1);minDate.setHours(0,0,0,0);}const tags=[...new Set(dados.map(d=>d.TAG))].sort();const comps=[...new Set(dados.map(d=>d.COMPONENTE))];const cores=['#FFCD11','#15171A','#8A7000','#6B6E73','#FFE38A','#3A3D42','#B5B7BB'];const datasets=comps.map((c,i)=>({label:c,data:dados.filter(d=>d.COMPONENTE===c).map(d=>({x:[d.DATA_OTIMIZADA.getTime(),addDays(d.DATA_OTIMIZADA,15).getTime()],y:d.TAG})),backgroundColor:cores[i%cores.length],borderColor:cores[i%cores.length],borderWidth:1,barPercentage:0.6}));window.myGantt=new Chart(ctx,{type:'bar',data:{labels:tags,datasets},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,scales:{x:{type:'time',time:{unit:'month'},min:minDate,max:eOv?eOv:undefined,grid:{color:'#E6E6E2'},ticks:{color:'#15171A'}},y:{grid:{display:false},ticks:{color:'#15171A'}}},plugins:{legend:{labels:{color:'#15171A'}},tooltip:{callbacks:{label:c=>c.dataset.label+': '+new Date(c.raw.x[0]).toLocaleDateString('pt-BR')}}}}});}
+const ganttRotulos={id:'ganttRotulos',afterDatasetsDraw(c){const ctx=c.ctx,area=c.chartArea;const itens=[];
+c.data.datasets.forEach((ds,di)=>{const meta=c.getDatasetMeta(di);if(meta.hidden)return;meta.data.forEach((el,i)=>{const raw=ds.data[i];if(!raw||!raw.tag)return;const alt=el.height||0;if(alt<8)return;
+itens.push({y:Math.round(el.y),alt:alt,ini:Math.min(el.x,el.base),fim:Math.max(el.x,el.base),txt:raw.tag});});});
+if(!itens.length)return;itens.sort((a,b)=>a.y-b.y||a.ini-b.ini);
+const barras={};itens.forEach(it=>{(barras[it.y]=barras[it.y]||[]).push([it.ini,it.fim]);});
+const livre=(y,x0,x1)=>!(barras[y]||[]).some(b=>x0<b[1]+3&&x1>b[0]-3);
+const gapMin=(area.right-area.left)*0.26;const ocupado={};ctx.save();ctx.textBaseline='middle';ctx.fillStyle='#3A3D42';
+itens.forEach(it=>{ctx.font='700 '+Math.min(11,Math.max(7,Math.round(it.alt*0.62)))+'px "Roboto Condensed",Arial,sans-serif';
+const larg=ctx.measureText(it.txt).width;const ult=ocupado[it.y];
+if(ult!==undefined&&it.fim-ult<gapMin)return;
+if(it.fim+larg+8<area.right&&livre(it.y,it.fim+4,it.fim+larg+6)){ctx.textAlign='left';ctx.fillText(it.txt,it.fim+5,it.y);ocupado[it.y]=it.fim+larg+5;}
+else if(it.ini-larg-8>area.left&&livre(it.y,it.ini-larg-6,it.ini-4)){ctx.textAlign='right';ctx.fillText(it.txt,it.ini-5,it.y);ocupado[it.y]=it.ini;}});
+ctx.restore();}};
+const GANTT_RH=22,GANTT_BLOCO_MAX=680;
+function renderizarGantt(dados,sOv=null,eOv=null){
+const wrap=document.getElementById('ganttWrap');
+if(window.ganttCharts)window.ganttCharts.forEach(c=>{try{c.destroy();}catch(e){}});
+window.ganttCharts=[];wrap.innerHTML='';
+if(!dados||!dados.length){wrap.innerHTML='<div class="gantt-wrap" style="height:120px;display:flex;align-items:center;justify-content:center;color:#6B6E73;">Sem trocas no filtro selecionado.</div>';return;}
+let minDate=sOv;if(!minDate){minDate=new Date();minDate.setDate(1);minDate.setHours(0,0,0,0);}
+const tags=[...new Set(dados.map(d=>d.TAG))].sort();
+const tMax=eOv?eOv.getTime():Math.max(...dados.map(d=>d.DATA_OTIMIZADA.getTime()));
+const maxData=eOv?eOv:new Date(tMax+20*864e5);
+const janelaMs=Math.max(30*864e5,maxData.getTime()-minDate.getTime());
+const durMs=Math.min(45*864e5,Math.max(10*864e5,janelaMs*0.022));
+const comps=[...new Set(dados.map(d=>d.COMPONENTE))].sort();
+const cores=['#FFCD11','#15171A','#8A7000','#6B6E73','#FFE38A','#3A3D42','#B5B7BB','#D9AA00'];
+const corDe={};comps.forEach((c,i)=>corDe[c]=cores[i%cores.length]);
+const porBloco=Math.max(6,Math.floor((GANTT_BLOCO_MAX-110)/GANTT_RH));
+const blocos=[];for(let i=0;i<tags.length;i+=porBloco)blocos.push(tags.slice(i,i+porBloco));
+blocos.forEach((bt,bi)=>{
+ const cid='ganttChart'+(bi?'_'+bi:'');
+ const box=document.createElement('div');box.className='gantt-wrap';
+ const h=bt.length*GANTT_RH+(bi===0?96:64);
+ box.innerHTML=(blocos.length>1?'<div class="gantt-cont">Bloco '+(bi+1)+' de '+blocos.length+' &nbsp;\u00b7&nbsp; '+bt[0]+' a '+bt[bt.length-1]+'</div>':'')+'<div style="height:'+h+'px;"><canvas id="'+cid+'"></canvas></div>';
+ wrap.appendChild(box);
+ const sub=dados.filter(d=>bt.indexOf(d.TAG)>=0);
+ const usados=[...new Set(sub.map(d=>d.COMPONENTE))].sort();
+ const datasets=usados.map(c=>({label:c,data:sub.filter(d=>d.COMPONENTE===c).map(d=>({x:[d.DATA_OTIMIZADA.getTime(),d.DATA_OTIMIZADA.getTime()+durMs],y:d.TAG,tag:d.TAG,comp:c})),backgroundColor:corDe[c],borderColor:'#15171A',borderWidth:.5,borderSkipped:false,barPercentage:.94,categoryPercentage:.92}));
+ const ch=new Chart(document.getElementById(cid).getContext('2d'),{type:'bar',data:{labels:bt,datasets},plugins:[ganttRotulos],options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,animation:false,layout:{padding:{right:58}},
+ scales:{x:{type:'time',time:{unit:'month'},min:minDate,max:maxData,grid:{color:'#D7DBE0',lineWidth:1},ticks:{color:'#15171A',font:{size:10},maxRotation:0}},
+ y:{stacked:true,grid:{display:true,color:'#EDEDE9',lineWidth:1,drawOnChartArea:true},ticks:{color:'#15171A',autoSkip:false,font:{size:11}}}},
+ plugins:{legend:{display:bi===0,labels:{color:'#15171A',boxWidth:14,font:{size:10}}},tooltip:{callbacks:{label:c=>c.raw.comp+' \u2014 '+c.raw.tag+': '+new Date(c.raw.x[0]).toLocaleDateString('pt-BR')}}}}});
+ window.ganttCharts.push(ch);});
+window.myGantt=window.ganttCharts[0];}
 function baixarPlanilha(){if(!todasAsLinhas.length)return alert("Rode a otimização primeiro.");const dados=todasAsLinhas.map(r=>({COMPONENTE:r.COMPONENTE,TAG:r.TAG,VIDA_ATUAL:Math.floor(r.VIDA),HOR_PLANEJADO:Math.floor(r.HOR_PLANEJADO),RISCO_FALHA:r.RISCO!=null?(r.RISCO*100).toFixed(1)+'%':'',DATA_MINIMA:fFull(r.T_MIN),DATA_MAXIMA:fFull(r.T_MAX),DATA_TROCA:fYM(r.DATA_OTIMIZADA),RETORNO_ESTOQUE:fYM(r.DATA_DISPONIVEL),ORIGEM:r.ORIGEM}));const ws=XLSX.utils.json_to_sheet(dados),wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Cronograma");if(segResultados.length){const ws2=XLSX.utils.json_to_sheet(segResultados);XLSX.utils.book_append_sheet(wb,ws2,"Estoque_Seguranca");}XLSX.writeFile(wb,"Cronograma_Otimizado.xlsx");}
 function downloadChart(id,fn,title){const c=document.getElementById(id);if(!c)return;const th=50;const nc=document.createElement('canvas');nc.width=c.width;nc.height=c.height+th;const x=nc.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,nc.width,nc.height);x.fillStyle='#15171A';x.font='bold 24px sans-serif';x.textAlign='center';x.fillText(title,nc.width/2,35);x.drawImage(c,0,th);const a=document.createElement('a');a.download=fn+'.png';a.href=nc.toDataURL('image/png');a.click();}
-function gerarPDF(){if(!todasAsLinhas.length)return alert("Rode a otimização primeiro.");const el=document.getElementById('printableArea');document.getElementById('pdfDate').innerText=new Date().toLocaleDateString('pt-BR');const np=document.querySelectorAll('.no-print, .sticky-top');np.forEach(e=>e.style.display='none');document.querySelector('.pdf-only').style.display='block';const ow=el.style.width;el.style.width='1080px';el.style.background='#fff';el.style.color='#000';Chart.helpers.each(Chart.instances,i=>i.resize());const opt={margin:[5,5,5,5],filename:'Hotsheet_Planejamento.pdf',image:{type:'jpeg',quality:1},html2canvas:{scale:2,useCORS:true,scrollY:0,backgroundColor:'#fff'},jsPDF:{unit:'mm',format:'a4',orientation:'landscape'},pagebreak:{mode:['avoid-all','css','legacy']}};html2pdf().set(opt).from(el).save().then(()=>{np.forEach(e=>e.style.display='');document.querySelector('.pdf-only').style.display='none';el.style.width=ow;el.style.background='';el.style.color='';Chart.helpers.each(Chart.instances,i=>i.resize());});}
+function gerarPDF(){if(!todasAsLinhas.length)return alert("Rode a otimiza\u00e7\u00e3o primeiro.");
+const el=document.getElementById('printableArea');document.getElementById('pdfDate').innerText=new Date().toLocaleDateString('pt-BR');
+const np=document.querySelectorAll('.no-print, .sticky-top');np.forEach(e=>e.style.display='none');
+document.querySelector('.pdf-only').style.display='block';
+document.body.classList.add('pdf-mode');
+const crono=document.getElementById('cronoWrap');const ocMax=crono?crono.style.maxHeight:'';const ocOv=crono?crono.style.overflowY:'';
+if(crono){crono.style.maxHeight='none';crono.style.overflowY='visible';crono.style.overflowX='visible';}
+const ow=el.style.width;el.style.width='1080px';el.style.background='#fff';el.style.color='#000';
+Chart.helpers.each(Chart.instances,i=>i.resize());
+const opt={margin:[6,6,8,6],filename:'Hotsheet_Planejamento.pdf',image:{type:'jpeg',quality:1},
+html2canvas:{scale:2,useCORS:true,scrollY:0,windowHeight:el.scrollHeight+200,backgroundColor:'#fff'},
+jsPDF:{unit:'mm',format:'a4',orientation:'landscape'},
+pagebreak:{mode:['css','legacy'],avoid:['.niv-row','.niv-card','.k-card','.gantt-wrap','tr','h2']}};
+const limpar=()=>{np.forEach(e=>e.style.display='');document.querySelector('.pdf-only').style.display='none';document.body.classList.remove('pdf-mode');if(crono){crono.style.maxHeight=ocMax;crono.style.overflowY=ocOv;crono.style.overflowX='';}el.style.width=ow;el.style.background='';el.style.color='';Chart.helpers.each(Chart.instances,i=>i.resize());};
+setTimeout(()=>{html2pdf().set(opt).from(el).save().then(limpar).catch(limpar);},250);}
 
 // ==================== BASE ONLINE (GITHUB PRIVADO) ====================
 function setBadge(estado,txt){const b=document.getElementById('baseBadge');if(!b)return;b.className='base-badge '+(estado||'');b.innerText=txt;}
