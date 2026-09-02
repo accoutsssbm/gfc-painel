@@ -8,6 +8,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;700&display=swap" rel="stylesheet">
 <style>
 :root{--cat-yellow:#FFCD11;--cat-black:#15171A;--ink:#15171A;--paper:#fff;--bg:#F2F2F0;--line:#E6E6E2;--muted:#6B6E73;--cat-gray:#fff;--cat-danger:#15171A;--radius:10px;--shadow:none;--yl-soft:#FFF3C2;--gr-1:#3A3D42;--gr-2:#6B6E73;--gr-3:#B5B7BB;--gr-4:#D9DAD7;}
@@ -126,6 +127,13 @@ table.dark th.gh.b{color:var(--cat-yellow);}
 .gantt-wrap{background:#fff;border-radius:6px;padding:10px;margin-bottom:10px;page-break-inside:avoid;break-inside:avoid;}
 .gantt-cont{font-size:.7rem;color:#6B6E73;font-weight:700;text-transform:uppercase;letter-spacing:.4px;margin:0 0 4px 2px;}
 .pdf-mode .table-container{max-height:none !important;overflow:visible !important;}
+.pdf-mode .niv-grid{display:block !important;}
+.pdf-mode .niv-row{display:flex !important;flex-wrap:nowrap !important;gap:16px !important;width:100% !important;}
+.pdf-mode .niv-card{flex:1 1 0 !important;min-width:0 !important;width:100% !important;box-sizing:border-box !important;}
+.pdf-mode.pdf-1col .niv-row{display:block !important;}
+.pdf-mode.pdf-1col .niv-card{width:100% !important;margin-bottom:16px !important;}
+.pdf-mode .table-container table{width:100% !important;table-layout:auto !important;}
+.pdf-mode .resumo-grid{width:100% !important;}
 .niv-card h3{margin:0;font-size:.85rem;text-transform:uppercase;border-left:4px solid var(--cat-yellow);padding-left:8px;color:var(--ink);}
 .xref-note{font-size:.7rem;color:var(--muted);margin-top:4px;}
 @media(max-width:900px){.niv-row{grid-template-columns:1fr;}}
@@ -521,7 +529,7 @@ comps.forEach((comp,idx)=>{if(idx%2===0){linha=document.createElement('div');lin
 const divId='chart_'+sanitize(comp);const wr=document.createElement('div');wr.className='niv-card';
 wr.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px;height:24px;"><h3>'+comp+'</h3><button class="mini-btn no-print" onclick="downloadChart(\''+divId+'\',\'G_'+sanitize(comp)+'\',\''+comp+'\')">PNG</button></div><div style="height:185px;"><canvas id="'+divId+'"></canvas></div>';
 linha.appendChild(wr);const d=nivelData[comp];
-nivelCharts[comp]=new Chart(document.getElementById(divId),{type:'bar',data:{labels:janela.map(mesLabel),datasets:[{label:'Original (As-Is)',data:janela.map(m=>d.mI[m]||0),backgroundColor:'#15171A',borderRadius:0,borderSkipped:false},{label:'Nivelado (To-Be)',data:janela.map(m=>d.mO[m]||0),backgroundColor:'#FFCD11',borderColor:'#15171A',borderWidth:1,borderRadius:0,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,animation:false,plugins:{legend:{position:'bottom',labels:{color:'#15171A',boxWidth:12,font:{size:10}}}},scales:{y:{beginAtZero:true,ticks:{precision:0,color:'#15171A',font:{size:10}},grid:{color:'#E6E6E2'},title:{display:true,text:'Qtd Trocas',color:'#15171A',font:{size:10}}},x:{grid:{display:false},ticks:{color:'#15171A',font:{size:10},maxRotation:0,autoSkip:false}}}}});});
+nivelCharts[comp]=new Chart(document.getElementById(divId),{type:'bar',plugins:(window.ChartDataLabels?[ChartDataLabels]:[]),data:{labels:janela.map(mesLabel),datasets:[{label:'Original (As-Is)',data:janela.map(m=>d.mI[m]||0),backgroundColor:'#15171A',borderRadius:0,borderSkipped:false},{label:'Nivelado (To-Be)',data:janela.map(m=>d.mO[m]||0),backgroundColor:'#FFCD11',borderWidth:0,borderRadius:0,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,animation:false,plugins:{legend:{position:'bottom',labels:{color:'#15171A',boxWidth:12,font:{size:10}}},datalabels:{anchor:'end',align:'top',offset:1,clamp:true,clip:false,color:'#15171A',font:{size:9,weight:700},formatter:v=>v>0?v:''}},scales:{y:{beginAtZero:true,grace:'14%',ticks:{precision:0,color:'#15171A',font:{size:10}},grid:{color:'#E6E6E2'},title:{display:true,text:'Qtd Trocas',color:'#15171A',font:{size:10}}},x:{grid:{display:false},ticks:{color:'#15171A',font:{size:10},maxRotation:0,autoSkip:false}}}}});});
 if(comps.length%2===1&&linha){const vazio=document.createElement('div');linha.appendChild(vazio);}}
 const CRONO_COLS=['COMPONENTE','TAG','VIDA ATUAL','HOR. PLANEJADO','RISCO F(t) COND.','DATA M\u00cdN','DATA M\u00c1X','PLAN. TROCA','RETORNO'];
 function renderizarTabela(dados){const tb=document.querySelector('#tabelaDetalhes tbody');tb.innerHTML='';const cab='<tr class="rep-head">'+CRONO_COLS.map(c=>'<td>'+c+'</td>').join('')+'</tr>';
@@ -542,6 +550,8 @@ if(ult!==undefined&&it.fim-ult<gapMin)return;
 if(it.fim+larg+8<area.right&&livre(it.y,it.fim+4,it.fim+larg+6)){ctx.textAlign='left';ctx.fillText(it.txt,it.fim+5,it.y);ocupado[it.y]=it.fim+larg+5;}
 else if(it.ini-larg-8>area.left&&livre(it.y,it.ini-larg-6,it.ini-4)){ctx.textAlign='right';ctx.fillText(it.txt,it.ini-5,it.y);ocupado[it.y]=it.ini;}});
 ctx.restore();}};
+// 2 = dois graficos de nivelamento por linha no PDF | 1 = um por linha (maior)
+const PDF_NIVEL_COLUNAS=2;
 const GANTT_RH=22,GANTT_BLOCO_MAX=680;
 function renderizarGantt(dados,sOv=null,eOv=null){
 const wrap=document.getElementById('ganttWrap');
@@ -580,7 +590,7 @@ function gerarPDF(){if(!todasAsLinhas.length)return alert("Rode a otimiza\u00e7\
 const el=document.getElementById('printableArea');document.getElementById('pdfDate').innerText=new Date().toLocaleDateString('pt-BR');
 const np=document.querySelectorAll('.no-print, .sticky-top');np.forEach(e=>e.style.display='none');
 document.querySelector('.pdf-only').style.display='block';
-document.body.classList.add('pdf-mode');
+document.body.classList.add('pdf-mode');if(PDF_NIVEL_COLUNAS===1)document.body.classList.add('pdf-1col');
 const crono=document.getElementById('cronoWrap');const ocMax=crono?crono.style.maxHeight:'';const ocOv=crono?crono.style.overflowY:'';
 if(crono){crono.style.maxHeight='none';crono.style.overflowY='visible';crono.style.overflowX='visible';}
 const ow=el.style.width;el.style.width='1080px';el.style.background='#fff';el.style.color='#000';
@@ -589,7 +599,7 @@ const opt={margin:[6,6,8,6],filename:'Hotsheet_Planejamento.pdf',image:{type:'jp
 html2canvas:{scale:2,useCORS:true,scrollY:0,windowHeight:el.scrollHeight+200,backgroundColor:'#fff'},
 jsPDF:{unit:'mm',format:'a4',orientation:'landscape'},
 pagebreak:{mode:['css','legacy'],avoid:['.niv-row','.niv-card','.k-card','.gantt-wrap','tr','h2']}};
-const limpar=()=>{np.forEach(e=>e.style.display='');document.querySelector('.pdf-only').style.display='none';document.body.classList.remove('pdf-mode');if(crono){crono.style.maxHeight=ocMax;crono.style.overflowY=ocOv;crono.style.overflowX='';}el.style.width=ow;el.style.background='';el.style.color='';Chart.helpers.each(Chart.instances,i=>i.resize());};
+const limpar=()=>{np.forEach(e=>e.style.display='');document.querySelector('.pdf-only').style.display='none';document.body.classList.remove('pdf-mode','pdf-1col');if(crono){crono.style.maxHeight=ocMax;crono.style.overflowY=ocOv;crono.style.overflowX='';}el.style.width=ow;el.style.background='';el.style.color='';Chart.helpers.each(Chart.instances,i=>i.resize());};
 setTimeout(()=>{html2pdf().set(opt).from(el).save().then(limpar).catch(limpar);},250);}
 
 // ==================== BASE ONLINE (GITHUB PRIVADO) ====================
