@@ -8,6 +8,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;700&display=swap" rel="stylesheet">
 <style>
@@ -271,7 +272,7 @@ canvas{max-width:100%;}
 <div style="margin-top:16px;"><button class="primary" style="width:100%" onclick="executarOtimizacao()">Rodar Planejamento (Monte Carlo)</button></div></div>
 <div class="section no-print"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:10px;">
 <h2 style="margin:0;">Parâmetros por Componente</h2>
-<div style="display:flex;gap:10px;"><button class="success" onclick="baixarPlanilha()">Excel</button><button class="secondary" onclick="gerarPDF()">PDF</button></div></div>
+<div style="display:flex;gap:10px;align-items:center;"><div class="filter-group" style="flex:0 0 auto;"><label title="Percentual de componentes removidos que a oficina condena na recuperação">REFUGO (%)</label><input type="number" id="refugoPct" value="15" min="0" max="100" style="width:90px" title="Percentual de componentes removidos que a oficina condena na recuperação"></div><button class="success" onclick="baixarPlanilha()">Excel</button><button class="secondary" onclick="gerarPDF()">PDF</button><button class="success" onclick="gerarApresentacao()">Apresentação</button></div></div>
 <p style="font-size:.76rem;color:var(--ink);margin:0 0 14px 0;">A Vida Útil vem da planilha de componentes (sempre o menor valor daquele componente) e pode ser editada. Lead Time e janelas são preenchidos por você.</p>
 <div class="legend-box"><h5>Como ler os números de cada componente</h5>
 <div class="legend-grid">
@@ -592,6 +593,552 @@ jsPDF:{unit:'mm',format:'a4',orientation:'landscape'},
 pagebreak:{mode:['css','legacy'],avoid:['.niv-row','.niv-card','.k-card','.gantt-wrap','tr','h2']}};
 const limpar=()=>{np.forEach(e=>e.style.display='');document.querySelector('.pdf-only').style.display='none';document.body.classList.remove('pdf-mode','pdf-1col');if(crono){crono.style.maxHeight=ocMax;crono.style.overflowY=ocOv;crono.style.overflowX='';}el.style.width=ow;el.style.background='';el.style.color='';Chart.helpers.each(Chart.instances,i=>i.resize());};
 setTimeout(()=>{html2pdf().set(opt).from(el).save().then(limpar).catch(limpar);},250);}
+
+// ==================== APRESENTACAO (PPTX) ====================
+const PPT={PRETO:"15171A",AM:"FFCD11",BR:"FFFFFF",CZ:"6B6E73",CZC:"F2F2F0",
+           LINHA:"E6E6E2",CZM:"3A3D42",AMESC:"8A7000",SOFT:"FFF3C2",F:"Arial"};
+
+function _pTitulo(s,txt,sub){
+  s.addShape("rect",{x:0.6,y:0.52,w:0.1,h:0.34,fill:{color:PPT.AM},line:{color:PPT.AM}});
+  s.addText(txt,{x:0.82,y:0.44,w:11.9,h:0.5,fontSize:26,bold:true,color:PPT.PRETO,
+    fontFace:PPT.F,isTextBox:true,margin:0,valign:"middle"});
+  if(sub)s.addText(sub,{x:0.82,y:0.95,w:11.9,h:0.34,fontSize:12.5,color:PPT.CZ,
+    fontFace:PPT.F,isTextBox:true,margin:0,valign:"middle"});
+}
+function _pRodape(s,n){
+  s.addText("Sotreq | GFC — Engenharia de Confiabilidade e Planejamento",
+    {x:0.6,y:6.95,w:8,h:0.3,fontSize:9,color:PPT.CZ,fontFace:PPT.F,isTextBox:true,margin:0});
+  s.addText(String(n),{x:12.1,y:6.95,w:0.6,h:0.3,fontSize:9,color:PPT.CZ,fontFace:PPT.F,
+    isTextBox:true,margin:0,align:"right"});
+}
+function _pCard(s,x,y,w,h,fill){
+  s.addShape("roundRect",{x,y,w,h,rectRadius:0.06,
+    fill:{color:fill||PPT.CZC},line:{color:fill||PPT.CZC}});
+}
+function _pTabela(s,cab,linhas,colW,x,y,o){
+  o=o||{};
+  const rows=[cab.map(c=>({text:c,options:{fill:PPT.PRETO,color:PPT.BR,bold:true,
+    fontSize:11.5,align:"center",valign:"middle"}}))];
+  linhas.forEach(function(ln,i){
+    const d=o.destaque&&o.destaque.indexOf(i)>=0;
+    rows.push(ln.map(function(c,j){return{text:c,options:{
+      fill:d?PPT.SOFT:(i%2?PPT.CZC:PPT.BR),color:PPT.PRETO,bold:d||j===0,
+      fontSize:o.fs||11.5,align:j===0?"left":"center",valign:"middle"}};}));
+  });
+  s.addTable(rows,{x:x,y:y,colW:colW,fontFace:PPT.F,
+    border:{type:"solid",color:PPT.LINHA,pt:0.5},rowH:o.rowH||0.36,margin:5});
+}
+function _pNum(v){return (Math.round(v*10)/10).toFixed(1).replace('.',',');}
+function _pMesLbl(m){return mesLabel(m);}
+
+// --- extrai tudo o que a apresentacao precisa do estado atual do painel ---
+function _pptDados(){
+  const NS=Math.round(parseFloat(document.getElementById('nivelServico').value)||95);
+  const refugo=(parseFloat((document.getElementById('refugoPct')||{}).value)||0)/100;
+  const media=parseFloat(document.getElementById('mediaHorasGlobal').value)||18;
+
+  const comps=[...new Set(todasAsLinhas.map(r=>r.COMPONENTE))].sort();
+
+  // horizonte por componente
+  const hor={};
+  segResultados.forEach(r=>{if(r.ANO==='HORIZONTE')hor[r.COMPONENTE]=r;});
+
+  // lead time por componente (dos campos da tela)
+  const lead={};
+  planComps.forEach(function(pc,idx){
+    const el=document.getElementById('lead_'+idx);
+    lead[pc.comp]=Math.ceil((parseFloat(el?el.value:0)||0)/30);
+  });
+
+  // perfis weibull
+  const perfil={};
+  planComps.forEach(pc=>{perfil[pc.comp]={p:pc.profile,vue:pc.vue};});
+
+  // anos
+  const anos=[...new Set(segResultados.filter(r=>r.ANO!=='HORIZONTE'&&r.ANO!=='N/A')
+    .map(r=>String(r.ANO)))].sort();
+  const parqueAno={},trocasAno={};
+  anos.forEach(a=>{parqueAno[a]=0;trocasAno[a]=0;});
+  segResultados.forEach(function(r){
+    const a=String(r.ANO);
+    if(parqueAno[a]!==undefined){
+      parqueAno[a]+=(parseFloat(r.PARQUE_COM_FALHAS)||0);
+      trocasAno[a]+=(parseFloat(r.TROCAS_PLANEJADAS)||0);
+    }
+  });
+
+  // trocas por ano e por componente (para a previsao de compra)
+  const trocasCompAno={};
+  comps.forEach(c=>{trocasCompAno[c]={};anos.forEach(a=>trocasCompAno[c][a]=0);});
+  todasAsLinhas.forEach(function(r){
+    const a=String(r.DATA_OTIMIZADA.getFullYear());
+    if(trocasCompAno[r.COMPONENTE]&&trocasCompAno[r.COMPONENTE][a]!==undefined)
+      trocasCompAno[r.COMPONENTE][a]++;
+  });
+
+  // trimestres
+  const tset=new Set();
+  todasAsLinhas.forEach(function(r){
+    const d=r.DATA_OTIMIZADA;
+    tset.add(d.getFullYear()+'-'+(Math.floor(d.getMonth()/3)+1));
+  });
+  const trims=[...tset].sort();
+  const trimSerie={};
+  comps.forEach(c=>{trimSerie[c]=trims.map(()=>0);});
+  todasAsLinhas.forEach(function(r){
+    const d=r.DATA_OTIMIZADA;
+    const k=trims.indexOf(d.getFullYear()+'-'+(Math.floor(d.getMonth()/3)+1));
+    if(k>=0)trimSerie[r.COMPONENTE][k]++;
+  });
+
+  // marcos: em que mes o parque do ciclo precisa estar em N unidades
+  const marcos={};
+  comps.forEach(function(c){
+    const fx={};
+    todasAsLinhas.filter(r=>r.COMPONENTE===c).forEach(function(r){
+      const a=fYM(r.DATA_OTIMIZADA);fx[a]=(fx[a]||0)-1;
+      const d=new Date(r.DATA_OTIMIZADA);d.setMonth(d.getMonth()+(lead[c]||0));
+      const b=fYM(d);fx[b]=(fx[b]||0)+1;
+    });
+    let sd=0,pico=0;const out=[];
+    Object.keys(fx).sort().forEach(function(m){
+      sd+=fx[m];
+      if(-sd>pico){for(let k=pico+1;k<=-sd;k++)out.push({mes:m,n:k});pico=-sd;}
+    });
+    marcos[c]=out;
+  });
+
+  // totais
+  let pCiclo=0,pSeg=0,nTrocas=todasAsLinhas.length,nAntec=0;
+  comps.forEach(function(c){
+    const h=hor[c];if(!h)return;
+    pCiclo+=(parseFloat(h.PARQUE_CICLO)||0);
+    pSeg+=(parseFloat(h.SEGURANCA)||0);
+    nAntec+=(parseFloat(h.ANTECIPADAS_POR_FALHA)||0);
+  });
+
+  return {NS,refugo,media,comps,hor,lead,perfil,anos,parqueAno,trocasAno,
+          trocasCompAno,trims,trimSerie,marcos,pCiclo,pSeg,
+          pTotal:pCiclo+pSeg,nTrocas,nAntec};
+}
+
+function gerarApresentacao(){
+  if(!todasAsLinhas.length)return alert("Rode o planejamento primeiro.");
+  if(typeof PptxGenJS==='undefined')
+    return alert("A biblioteca de apresentação não carregou. Verifique a conexão e recarregue a página.");
+
+  const D=_pptDados();
+  const hoje=new Date().toLocaleDateString('pt-BR');
+  const pptx=new PptxGenJS();
+  pptx.layout="LAYOUT_WIDE";
+  pptx.author="Sotreq — GFC";
+  pptx.title="Planejamento de Parque e Confiabilidade — Weibull + Monte Carlo";
+  let n=0,s;
+
+  // ---------- 1 CAPA ----------
+  s=pptx.addSlide();s.background={color:PPT.PRETO};
+  s.addShape("rect",{x:0,y:0,w:13.3,h:0.16,fill:{color:PPT.AM},line:{color:PPT.AM}});
+  s.addText("SOTREQ  |  GESTÃO DE FROTAS E COMPONENTES",{x:0.9,y:1.9,w:11,h:0.35,
+    fontSize:12,bold:true,color:PPT.AM,fontFace:PPT.F,isTextBox:true,margin:0,charSpacing:2});
+  s.addText("Planejamento de Parque\ne Análise de Confiabilidade",{x:0.9,y:2.45,w:11,h:1.7,
+    fontSize:40,bold:true,color:PPT.BR,fontFace:PPT.F,isTextBox:true,margin:0,lineSpacing:44});
+  s.addText("Método de Weibull + Simulação de Monte Carlo",{x:0.9,y:4.25,w:11,h:0.4,
+    fontSize:17,color:PPT.AM,fontFace:PPT.F,isTextBox:true,margin:0});
+  s.addShape("rect",{x:0.9,y:4.95,w:4.2,h:0.03,fill:{color:PPT.CZM},line:{color:PPT.CZM}});
+  s.addText(D.comps.join(" · ")+"\n"+
+    [...new Set(todasAsLinhas.map(r=>r.TAG.split(' [')[0]))].length+" equipamentos · "+
+    D.nTrocas+" trocas · nível de serviço "+D.NS+"%",
+    {x:0.9,y:5.2,w:11,h:0.8,fontSize:12.5,color:"B5B7BB",fontFace:PPT.F,
+     isTextBox:true,margin:0,lineSpacing:19});
+  s.addText("Emissão: "+hoje+"  ·  build 2026-09-02-e",{x:0.9,y:6.6,w:11,h:0.3,
+    fontSize:10,color:PPT.CZ,fontFace:PPT.F,isTextBox:true,margin:0});
+
+  // ---------- 2 O PROBLEMA ----------
+  s=pptx.addSlide();s.background={color:PPT.BR};n=2;
+  _pTitulo(s,"O problema","Componentes idênticos não duram o mesmo tempo");
+  s.addText([{text:"A falha antecipada não cria uma troca a mais.\n",
+      options:{bold:true,fontSize:19,color:PPT.PRETO,breakLine:true}},
+    {text:"Ela muda a data da troca que já estava prevista.",
+      options:{fontSize:19,color:PPT.AMESC}}],
+    {x:0.82,y:1.5,w:11.9,h:1.0,fontFace:PPT.F,isTextBox:true,margin:0,lineSpacing:28});
+  s.addText("E é a mudança de data que desorganiza o estoque: quando várias antecipações se acumulam no mesmo mês, é preciso ter mais unidades disponíveis ao mesmo tempo do que o ciclo planejado previa.",
+    {x:0.82,y:2.72,w:11.9,h:0.6,fontSize:13,color:PPT.CZM,fontFace:PPT.F,isTextBox:true,margin:0});
+  const pct=D.nTrocas?Math.round(D.nAntec/D.nTrocas*100):0;
+  [[String(D.nTrocas),"trocas no horizonte","(número fixo)"],
+   [String(Math.round(D.nAntec)),"tendem a antecipar","("+pct+"% do total)"],
+   ["0","trocas a mais criadas","(só mudam de mês)"]].forEach(function(c,i){
+    const x=0.6+i*4.06;
+    _pCard(s,x,3.35,3.86,1.85,i===1?PPT.SOFT:PPT.CZC);
+    s.addText(c[0],{x:x,y:3.5,w:3.86,h:0.95,fontSize:52,bold:true,
+      color:i===1?PPT.AMESC:PPT.PRETO,fontFace:PPT.F,isTextBox:true,margin:0,
+      align:"center",valign:"middle"});
+    s.addText(c[1],{x:x,y:4.45,w:3.86,h:0.32,fontSize:13,bold:true,color:PPT.PRETO,
+      fontFace:PPT.F,isTextBox:true,margin:0,align:"center"});
+    s.addText(c[2],{x:x,y:4.78,w:3.86,h:0.3,fontSize:10.5,color:PPT.CZ,
+      fontFace:PPT.F,isTextBox:true,margin:0,align:"center"});
+  });
+  s.addText("A pergunta certa não é “quantas trocas farei no ano” — esse número é fixo. É “quantas unidades precisam existir ao mesmo tempo para sustentar o fluxo troca → recuperação → retorno”.",
+    {x:0.82,y:5.55,w:11.9,h:0.8,fontSize:13,italic:true,color:PPT.PRETO,
+     fontFace:PPT.F,isTextBox:true,margin:0});
+  _pRodape(s,n);
+
+  // ---------- 3 O METODO ----------
+  s=pptx.addSlide();s.background={color:PPT.BR};n=3;
+  _pTitulo(s,"O método em três camadas","Cada camada responde uma pergunta diferente");
+  [["VIDA ÚTIL PADRÃO","QUANDO trocar","A data de troca vem da vida útil de engenharia do componente, lida da planilha de frota. O Weibull não define quando trocar.",PPT.CZC,PPT.PRETO],
+   ["WEIBULL","QUANTOS não chegam lá","A curva ajustada ao histórico real desta frota mede a probabilidade de cada componente falhar antes da data planejada.",PPT.PRETO,PPT.BR],
+   ["MONTE CARLO","QUANTAS unidades ter","Milhares de cenários traduzem essa incerteza no pico de unidades simultaneamente necessárias, ao nível de serviço de "+D.NS+"%.",PPT.SOFT,PPT.PRETO]
+  ].forEach(function(c,i){
+    const x=0.6+i*4.06;
+    _pCard(s,x,1.55,3.86,3.4,c[3]);
+    s.addText(String(i+1),{x:x+0.25,y:1.72,w:0.7,h:0.55,fontSize:22,bold:true,
+      color:i===1?PPT.AM:PPT.AMESC,fontFace:PPT.F,isTextBox:true,margin:0,valign:"middle"});
+    s.addText(c[0],{x:x+0.25,y:2.35,w:3.36,h:0.4,fontSize:15,bold:true,color:c[4],
+      fontFace:PPT.F,isTextBox:true,margin:0});
+    s.addText(c[1],{x:x+0.25,y:2.78,w:3.36,h:0.35,fontSize:12.5,bold:true,
+      color:i===1?PPT.AM:PPT.AMESC,fontFace:PPT.F,isTextBox:true,margin:0});
+    s.addText(c[2],{x:x+0.25,y:3.2,w:3.36,h:1.6,fontSize:11.5,
+      color:i===1?"D9DAD7":PPT.CZM,fontFace:PPT.F,isTextBox:true,margin:0});
+  });
+  s.addText("Resultado:  Parque do Ciclo  +  Estoque de Segurança  =  Parque Total",
+    {x:0.6,y:5.35,w:12.1,h:0.55,fontSize:17,bold:true,color:PPT.PRETO,fontFace:PPT.F,
+     isTextBox:true,margin:0,align:"center",valign:"middle"});
+  s.addText("A vida útil padrão sustenta o cronograma; o Weibull sustenta a segurança. São camadas independentes e auditáveis separadamente.",
+    {x:0.6,y:5.95,w:12.1,h:0.45,fontSize:12,color:PPT.CZ,fontFace:PPT.F,
+     isTextBox:true,margin:0,align:"center"});
+  _pRodape(s,n);
+
+  // ---------- 4 PARAMETROS WEIBULL ----------
+  s=pptx.addSlide();s.background={color:PPT.BR};n=4;
+  _pTitulo(s,"Os parâmetros ajustados ao histórico desta frota",
+    "β define a natureza da falha · η é a vida característica (63,2% da população)");
+  const linW=D.comps.map(function(c){
+    const pf=(D.perfil[c]||{}).p;
+    if(!pf)return[c,"—","—","—","—","Sem histórico suficiente"];
+    const reg=pf.beta<0.95?"Falha prematura":(pf.beta<1.15?"Falha aleatória":
+      (pf.beta<1.5?"Desgaste inicial":"Desgaste progressivo"));
+    return[c,pf.beta.toFixed(3).replace('.',','),
+      Math.round(pf.eta).toLocaleString('pt-BR')+" h",
+      Math.round(pf.b10).toLocaleString('pt-BR')+" h",
+      Math.round(pf.b50).toLocaleString('pt-BR')+" h",
+      reg+" ("+pf.nFail+" falhas)"];
+  });
+  _pTabela(s,["Família","β (forma)","η (escala)","B10","Mediana","Regime de falha"],
+    linW,[3.0,1.5,1.5,1.4,1.5,3.2],0.6,1.55,{rowH:0.45,fs:12});
+  const yAcao=1.55+0.45*(linW.length+1)+0.35;
+  s.addText("O que isso significa em ação de engenharia",{x:0.6,y:yAcao,w:12.1,h:0.4,
+    fontSize:15,bold:true,color:PPT.PRETO,fontFace:PPT.F,isTextBox:true,margin:0});
+  [["β > 1  ·  desgaste","A taxa de falha cresce com a idade — o componente envelhece de fato. Reduzir o intervalo de troca é a alavanca correta e é economicamente justificado."],
+   ["β < 1  ·  falha prematura","A falha vem do início de vida: montagem, torque, contaminação, qualidade da recuperação. Antecipar a troca NÃO reduz o risco — o ganho está no processo de instalação."]
+  ].forEach(function(a,i){
+    const y=yAcao+0.5+i*1.15;
+    _pCard(s,0.6,y,12.1,1.0);
+    s.addText(a[0],{x:0.85,y:y+0.13,w:3.4,h:0.35,fontSize:13,bold:true,color:PPT.AMESC,
+      fontFace:PPT.F,isTextBox:true,margin:0});
+    s.addText(a[1],{x:0.85,y:y+0.46,w:11.6,h:0.5,fontSize:11.5,color:PPT.CZM,
+      fontFace:PPT.F,isTextBox:true,margin:0});
+  });
+  _pRodape(s,n);
+
+  // ---------- 5 NIVEL DE CONFIABILIDADE ----------
+  s=pptx.addSlide();s.background={color:PPT.PRETO};
+  s.addShape("rect",{x:0.6,y:0.52,w:0.1,h:0.34,fill:{color:PPT.AM},line:{color:PPT.AM}});
+  s.addText("Qual nível de confiabilidade estamos usando",{x:0.82,y:0.44,w:11.9,h:0.5,
+    fontSize:26,bold:true,color:PPT.BR,fontFace:PPT.F,isTextBox:true,margin:0,valign:"middle"});
+  s.addText(D.NS+"%",{x:0.6,y:1.6,w:4.2,h:1.9,fontSize:96,bold:true,color:PPT.AM,
+    fontFace:PPT.F,isTextBox:true,margin:0,align:"center",valign:"middle"});
+  s.addText("NÍVEL DE SERVIÇO DO PARQUE",{x:0.6,y:3.45,w:4.2,h:0.4,fontSize:12,bold:true,
+    color:PPT.BR,fontFace:PPT.F,isTextBox:true,margin:0,align:"center",charSpacing:1});
+  s.addText("O parque dimensionado é suficiente em "+D.NS+" de cada 100 cenários futuros simulados de antecipação de falha. Os "+(100-D.NS)+"% restantes são cenários extremos, cuja cobertura exigiria investimento desproporcional ao risco.",
+    {x:5.3,y:1.75,w:7.4,h:1.3,fontSize:14,color:"D9DAD7",fontFace:PPT.F,isTextBox:true,margin:0});
+  s.addText("É um parâmetro de decisão, não uma constante técnica — pode ser calibrado com o cliente.",
+    {x:5.3,y:3.05,w:7.4,h:0.5,fontSize:13,bold:true,color:PPT.AM,fontFace:PPT.F,
+     isTextBox:true,margin:0});
+  [[D.NS+"%","Nível de serviço do parque","Escolhido — negociável"],
+   ["R(t) na troca","Confiabilidade restante na data planejada","Resultado do modelo"],
+   ["63,2%","Definição da vida característica η","Constante matemática"]
+  ].forEach(function(c,i){
+    const x=0.6+i*4.06;
+    s.addShape("roundRect",{x:x,y:4.35,w:3.86,h:1.75,rectRadius:0.06,
+      fill:{color:PPT.CZM},line:{color:PPT.CZM}});
+    s.addText(c[0],{x:x,y:4.5,w:3.86,h:0.6,fontSize:20,bold:true,color:PPT.AM,
+      fontFace:PPT.F,isTextBox:true,margin:0,align:"center",valign:"middle"});
+    s.addText(c[1],{x:x+0.2,y:5.12,w:3.46,h:0.5,fontSize:11.5,bold:true,color:PPT.BR,
+      fontFace:PPT.F,isTextBox:true,margin:0,align:"center"});
+    s.addText(c[2],{x:x+0.2,y:5.62,w:3.46,h:0.35,fontSize:10,color:"B5B7BB",
+      fontFace:PPT.F,isTextBox:true,margin:0,align:"center"});
+  });
+  s.addText("Três números diferentes, três papéis diferentes. Só o primeiro é uma escolha nossa.",
+    {x:0.6,y:6.35,w:12.1,h:0.35,fontSize:11,italic:true,color:"B5B7BB",fontFace:PPT.F,
+     isTextBox:true,margin:0,align:"center"});
+
+  // ---------- 6 RESULTADO: PARQUE ----------
+  s=pptx.addSlide();s.background={color:PPT.BR};n=6;
+  _pTitulo(s,"Resultado: parque necessário",
+    "Unidades que precisam existir ao mesmo tempo — não são compras do ano");
+  const nc=Math.min(D.comps.length,3),lg=nc>0?(12.1-(nc-1)*0.2)/nc:12.1;
+  D.comps.slice(0,3).forEach(function(c,i){
+    const h=D.hor[c]||{},x=0.6+i*(lg+0.2);
+    const ciclo=parseFloat(h.PARQUE_CICLO)||0,seg=parseFloat(h.SEGURANCA)||0;
+    _pCard(s,x,1.6,lg,3.0);
+    s.addText(c,{x:x+0.15,y:1.78,w:lg-0.3,h:0.4,fontSize:12.5,bold:true,color:PPT.PRETO,
+      fontFace:PPT.F,isTextBox:true,margin:0,align:"center"});
+    s.addText(String(ciclo),{x:x+0.05,y:2.3,w:1.15,h:0.85,fontSize:26,bold:true,
+      color:PPT.PRETO,fontFace:PPT.F,isTextBox:true,margin:0,align:"center",valign:"middle"});
+    s.addText("CICLO",{x:x+0.05,y:3.15,w:1.15,h:0.36,fontSize:10,color:PPT.CZ,
+      fontFace:PPT.F,isTextBox:true,margin:0,align:"center"});
+    s.addText("+",{x:x+1.2,y:2.4,w:0.35,h:0.7,fontSize:20,color:PPT.CZ,fontFace:PPT.F,
+      isTextBox:true,margin:0,align:"center",valign:"middle"});
+    s.addText(String(seg),{x:x+1.55,y:2.3,w:1.15,h:0.85,fontSize:26,bold:true,
+      color:PPT.AMESC,fontFace:PPT.F,isTextBox:true,margin:0,align:"center",valign:"middle"});
+    s.addText("SEGURANÇA",{x:x+1.55,y:3.15,w:1.15,h:0.36,fontSize:10,color:PPT.CZ,
+      fontFace:PPT.F,isTextBox:true,margin:0,align:"center"});
+    s.addShape("roundRect",{x:x+lg/2-1.03,y:3.55,w:2.06,h:0.85,rectRadius:0.05,
+      fill:{color:PPT.AM},line:{color:PPT.AM}});
+    s.addText(String(ciclo+seg),{x:x+lg/2-1.03,y:3.58,w:2.06,h:0.6,fontSize:30,bold:true,
+      color:PPT.PRETO,fontFace:PPT.F,isTextBox:true,margin:0,align:"center",valign:"middle"});
+    s.addText("PARQUE TOTAL",{x:x+lg/2-1.03,y:4.14,w:2.06,h:0.24,fontSize:8.5,bold:true,
+      color:PPT.PRETO,fontFace:PPT.F,isTextBox:true,margin:0,align:"center"});
+  });
+  _pCard(s,0.6,4.9,12.1,1.35,PPT.PRETO);
+  s.addText(String(D.pTotal),{x:0.9,y:5.05,w:1.5,h:1.0,fontSize:44,bold:true,color:PPT.AM,
+    fontFace:PPT.F,isTextBox:true,margin:0,align:"center",valign:"middle"});
+  s.addText([{text:"unidades no total ",options:{fontSize:16,bold:true,color:PPT.BR}},
+    {text:"— "+D.pCiclo+" para sustentar o ciclo de troca, recuperação e retorno, e "+D.pSeg+" para absorver as antecipações por falha.",
+     options:{fontSize:14,color:"D9DAD7"}}],
+    {x:2.5,y:5.2,w:9.9,h:0.75,fontFace:PPT.F,isTextBox:true,margin:0,valign:"middle"});
+  _pRodape(s,n);
+
+  // ---------- 7 NECESSIDADE POR ANO ----------
+  s=pptx.addSlide();s.background={color:PPT.BR};n=7;
+  _pTitulo(s,"Necessidade de unidades por ano",
+    "Pico simultâneo — estes valores não se somam entre anos");
+  const vAno=D.anos.map(a=>D.parqueAno[a]);
+  const maxA=Math.max.apply(null,vAno.concat([1]));
+  s.addChart(pptx.ChartType.bar,[{name:"Unidades necessárias",labels:D.anos,values:vAno}],
+    {x:0.6,y:1.55,w:7.3,h:4.55,barDir:"col",chartColors:[PPT.AM],
+     showValue:true,dataLabelPosition:"outEnd",dataLabelColor:PPT.PRETO,
+     dataLabelFontSize:16,dataLabelFontBold:true,dataLabelFontFace:PPT.F,
+     catAxisLabelColor:PPT.PRETO,catAxisLabelFontSize:13,catAxisLabelFontFace:PPT.F,
+     valAxisLabelColor:PPT.CZ,valAxisLabelFontSize:11,valAxisLabelFontFace:PPT.F,
+     valGridLine:{color:PPT.LINHA,size:1},catGridLine:{style:"none"},
+     showLegend:false,barGapWidthPct:60,valAxisMinVal:0,
+     valAxisMaxVal:Math.ceil(maxA*1.2)});
+  _pCard(s,8.2,1.55,4.5,4.55);
+  s.addText("Como ler",{x:8.45,y:1.78,w:4.0,h:0.4,fontSize:14,bold:true,color:PPT.PRETO,
+    fontFace:PPT.F,isTextBox:true,margin:0});
+  s.addText([
+    {text:"Cada barra é o pico de unidades exigidas simultaneamente naquele ano, ao nível de serviço de "+D.NS+"%.\n\n",options:{breakLine:true}},
+    {text:"Os valores não se somam entre anos — anos diferentes atingem o pico em momentos diferentes.\n\n",options:{bold:true,breakLine:true}},
+    {text:"Quando o pico está no início do horizonte, ele reflete o passivo acumulado da frota: componentes já próximos ou além da vida útil, com risco alto de antecipação.",options:{}}],
+    {x:8.45,y:2.25,w:4.0,h:3.6,fontSize:11.5,color:PPT.CZM,fontFace:PPT.F,
+     isTextBox:true,margin:0,lineSpacing:16,valign:"top"});
+  _pRodape(s,n);
+
+  // ---------- 8 MARCOS ----------
+  s=pptx.addSlide();s.background={color:PPT.BR};n=8;
+  _pTitulo(s,"Quando cada unidade do ciclo é exigida",
+    "Prazo-limite de disponibilidade, considerando apenas as trocas planejadas");
+  const maxU=Math.max.apply(null,D.comps.map(c=>D.marcos[c].length).concat([1]));
+  const cabM=["Componente"];
+  for(let i=1;i<=Math.min(maxU,5);i++)cabM.push(i+"ª unidade");
+  const linM=D.comps.map(function(c){
+    const l=[c];
+    for(let i=0;i<Math.min(maxU,5);i++)
+      l.push(D.marcos[c][i]?_pMesLbl(D.marcos[c][i].mes):"—");
+    return l;
+  });
+  const wRest=(12.1-3.5)/(cabM.length-1);
+  _pTabela(s,cabM,linM,[3.5].concat(cabM.slice(1).map(()=>wRest)),0.6,1.6,{rowH:0.48,fs:12.5});
+  const yM=1.6+0.48*(linM.length+1)+0.35;
+  _pCard(s,0.6,yM,5.9,1.9,PPT.SOFT);
+  s.addText("O ciclo é o mínimo",{x:0.9,y:yM+0.2,w:5.3,h:0.4,fontSize:14,bold:true,
+    color:PPT.PRETO,fontFace:PPT.F,isTextBox:true,margin:0});
+  s.addText("Estas datas consideram apenas as trocas planejadas. É o que o plano exige se nada falhar antes da hora.",
+    {x:0.9,y:yM+0.62,w:5.3,h:1.1,fontSize:12,color:PPT.CZM,fontFace:PPT.F,isTextBox:true,margin:0});
+  _pCard(s,6.8,yM,5.9,1.9);
+  s.addText("A segurança não tem data-marco",{x:7.1,y:yM+0.2,w:5.3,h:0.4,fontSize:14,
+    bold:true,color:PPT.PRETO,fontFace:PPT.F,isTextBox:true,margin:0});
+  s.addText("As "+D.pSeg+" unidades de segurança existem para cobrir eventos cuja data é desconhecida. Precisam estar posicionadas desde o início do horizonte.",
+    {x:7.1,y:yM+0.62,w:5.3,h:1.1,fontSize:12,color:PPT.CZM,fontFace:PPT.F,isTextBox:true,margin:0});
+  _pRodape(s,n);
+
+  // ---------- 9 NIVELAMENTO ----------
+  s=pptx.addSlide();s.background={color:PPT.BR};n=9;
+  _pTitulo(s,"Carga de trocas nivelada por trimestre",
+    "Resultado do nivelamento por Monte Carlo — capacidade de oficina e desembolso previsíveis");
+  const lblT=D.trims.map(t=>t.slice(2,4)+"·T"+t.slice(5));
+  const cores=[PPT.AM,PPT.PRETO,PPT.AMESC,PPT.CZ,"FFE38A","B5B7BB"];
+  s.addChart(pptx.ChartType.bar,
+    D.comps.map(function(c,i){return{name:c,labels:lblT,values:D.trimSerie[c]};}),
+    {x:0.6,y:1.6,w:12.1,h:3.9,barDir:"col",barGrouping:"stacked",
+     chartColors:D.comps.map((c,i)=>cores[i%cores.length]),
+     catAxisLabelColor:PPT.PRETO,catAxisLabelFontSize:10.5,catAxisLabelFontFace:PPT.F,
+     valAxisLabelColor:PPT.CZ,valAxisLabelFontSize:10,valAxisLabelFontFace:PPT.F,
+     valGridLine:{color:PPT.LINHA,size:1},catGridLine:{style:"none"},
+     showLegend:true,legendPos:"t",legendColor:PPT.PRETO,legendFontSize:11,
+     legendFontFace:PPT.F,barGapWidthPct:45,valAxisMinVal:0,
+     valAxisTitle:"Trocas no trimestre",showValAxisTitle:true,
+     valAxisTitleColor:PPT.CZ,valAxisTitleFontSize:10,valAxisTitleFontFace:PPT.F});
+  const totT=D.trims.map(function(_,k){
+    return D.comps.reduce((a,c)=>a+D.trimSerie[c][k],0);});
+  const med=totT.length?totT.reduce((a,b)=>a+b,0)/totT.length:0;
+  [[_pNum(med),"trocas por trimestre, em média"],
+   [Math.min.apply(null,totT)+" a "+Math.max.apply(null,totT),"faixa de variação no horizonte"],
+   [D.nTrocas+" trocas","no horizonte completo"]].forEach(function(c,i){
+    const x=0.6+i*4.06;
+    _pCard(s,x,5.65,3.86,0.95);
+    s.addText(c[0],{x:x+0.15,y:5.75,w:1.6,h:0.75,fontSize:20,bold:true,color:PPT.AMESC,
+      fontFace:PPT.F,isTextBox:true,margin:0,align:"center",valign:"middle"});
+    s.addText(c[1],{x:x+1.8,y:5.75,w:1.9,h:0.75,fontSize:10.5,color:PPT.CZM,
+      fontFace:PPT.F,isTextBox:true,margin:0,valign:"middle"});
+  });
+  _pRodape(s,n);
+
+  // ---------- 10 PARQUE NAO E COMPRA ----------
+  s=pptx.addSlide();s.background={color:PPT.BR};n=10;
+  _pTitulo(s,"Parque não é compra","A distinção que define o plano de aquisição");
+  _pCard(s,0.6,1.6,5.9,2.5,PPT.CZC);
+  s.addText("PARQUE",{x:0.9,y:1.82,w:5.3,h:0.4,fontSize:13,bold:true,color:PPT.AMESC,
+    fontFace:PPT.F,isTextBox:true,margin:0,charSpacing:1});
+  s.addText("Quantas unidades precisam existir ao mesmo tempo. O componente sai da máquina, vai para recuperação e volta ao estoque — é sempre a mesma unidade física. O parque é adquirido uma vez e gira.",
+    {x:0.9,y:2.28,w:5.3,h:1.6,fontSize:12.5,color:PPT.CZM,fontFace:PPT.F,isTextBox:true,margin:0});
+  _pCard(s,6.8,1.6,5.9,2.5,PPT.SOFT);
+  s.addText("REPOSIÇÃO",{x:7.1,y:1.82,w:5.3,h:0.4,fontSize:13,bold:true,color:PPT.AMESC,
+    fontFace:PPT.F,isTextBox:true,margin:0,charSpacing:1});
+  s.addText("Compras novas só acontecem quando um componente removido é condenado na inspeção e não pode ser recuperado. Nesse caso a unidade sai do parque em definitivo e precisa ser substituída.",
+    {x:7.1,y:2.28,w:5.3,h:1.6,fontSize:12.5,color:PPT.CZM,fontFace:PPT.F,isTextBox:true,margin:0});
+  _pCard(s,0.6,4.4,12.1,1.05,PPT.PRETO);
+  s.addText("As "+D.nTrocas+" trocas do horizonte NÃO significam "+D.nTrocas+" compras — são "+D.nTrocas+" movimentações do mesmo conjunto de "+D.pTotal+" unidades, mais as reposições por refugo.",
+    {x:0.9,y:4.5,w:11.5,h:0.85,fontSize:15,bold:true,color:PPT.BR,fontFace:PPT.F,
+     isTextBox:true,margin:0,valign:"middle"});
+  s.addText("Premissa a levantar: a taxa de refugo — percentual de componentes removidos que a oficina de recuperação condena — não é um resultado do modelo. É um dado externo que precisa ser confirmado antes de transformar este estudo em ordem de compra.",
+    {x:0.6,y:5.7,w:12.1,h:0.8,fontSize:12,italic:true,color:PPT.PRETO,fontFace:PPT.F,
+     isTextBox:true,margin:0});
+  _pRodape(s,n);
+
+  // ---------- 11 PREVISAO DE COMPRA ----------
+  s=pptx.addSlide();s.background={color:PPT.BR};n=11;
+  const rPct=Math.round(D.refugo*100);
+  _pTitulo(s,"Previsão de compra",
+    rPct>0?("Cenário de referência: "+rPct+"% de refugo na recuperação")
+          :"Sem taxa de refugo informada — apenas a formação do parque");
+  const anoCols=D.anos.slice();
+  const linC=[["Parque inicial"].concat(anoCols.map((a,i)=>i===0?String(D.pTotal):"—"))
+    .concat([String(D.pTotal)])];
+  const repAno={};anoCols.forEach(a=>repAno[a]=0);
+  D.comps.forEach(function(c){
+    const l=["Reposição — "+c];let soma=0;
+    anoCols.forEach(function(a){
+      const v=(D.trocasCompAno[c][a]||0)*D.refugo;
+      repAno[a]+=v;soma+=v;l.push(_pNum(v));
+    });
+    l.push(_pNum(soma));linC.push(l);
+  });
+  let totGeral=D.pTotal;
+  const lTot=["COMPRAS NO ANO"];
+  anoCols.forEach(function(a,i){
+    const v=Math.round(repAno[a])+(i===0?D.pTotal:0);
+    totGeral+=Math.round(repAno[a]);lTot.push(String(v));
+  });
+  lTot.push(String(totGeral));linC.push(lTot);
+  const wA=(12.1-3.3-2.4)/anoCols.length;
+  _pTabela(s,[""].concat(anoCols).concat(["Horizonte"]),linC,
+    [3.3].concat(anoCols.map(()=>wA)).concat([2.4]),0.6,1.6,
+    {rowH:0.42,fs:12,destaque:[linC.length-1]});
+  const yP=1.6+0.42*(linC.length+1)+0.4;
+  _pCard(s,0.6,yP,12.1,1.5,PPT.CZC);
+  s.addText("Leitura",{x:0.9,y:yP+0.15,w:11.5,h:0.35,fontSize:13,bold:true,color:PPT.PRETO,
+    fontFace:PPT.F,isTextBox:true,margin:0});
+  s.addText("O investimento é concentrado na constituição do parque: "+D.pTotal+" unidades. A partir daí o parque gira e a compra passa a ser apenas reposição do que a oficina condenar"+
+    (rPct>0?(" — cerca de "+_pNum(Object.values(repAno).reduce((a,b)=>a+b,0)/anoCols.length)+" unidades por ano no cenário de "+rPct+"%."):", percentual ainda a levantar."),
+    {x:0.9,y:yP+0.52,w:11.5,h:0.85,fontSize:12,color:PPT.CZM,fontFace:PPT.F,
+     isTextBox:true,margin:0});
+  _pRodape(s,n);
+
+  // ---------- 12 ACOES POR COMPONENTE ----------
+  s=pptx.addSlide();s.background={color:PPT.BR};n=12;
+  _pTitulo(s,"Onde está o ganho em cada componente",
+    "A curva de falha define a ação correta — e ela não é a mesma para todos");
+  D.comps.slice(0,4).forEach(function(c,i){
+    const pf=(D.perfil[c]||{}).p,h=D.hor[c]||{};
+    const tp=parseFloat(h.TROCAS_PLANEJADAS)||0,an=parseFloat(h.ANTECIPADAS_POR_FALHA)||0;
+    const pa=tp?Math.round(an/tp*100):0;
+    let reg="sem perfil",acao="Sem histórico suficiente para diagnóstico de falha. Ampliar a base de registros deste componente.";
+    if(pf){
+      const b=pf.beta.toFixed(2).replace('.',',');
+      if(pf.beta>=1.15){reg="β = "+b+"  ·  desgaste";
+        acao="Ajustar o intervalo de troca. A taxa de falha cresce com a idade, então reduzir a vida útil de planejamento reduz efetivamente o risco.";}
+      else if(pf.beta>=0.95){reg="β = "+b+"  ·  falha aleatória";
+        acao="Monitoramento de condição e preditiva. A falha independe da idade, então troca por hora tem retorno limitado.";}
+      else{reg="β = "+b+"  ·  falha prematura";
+        acao="Atacar montagem, torque, contaminação e qualidade da recuperação. Antecipar a troca não reduz o risco.";}
+    }
+    const y=1.55+i*1.32;
+    _pCard(s,0.6,y,12.1,1.16);
+    s.addText(c,{x:0.9,y:y+0.12,w:3.6,h:0.35,fontSize:13,bold:true,color:PPT.PRETO,
+      fontFace:PPT.F,isTextBox:true,margin:0});
+    s.addText(reg,{x:0.9,y:y+0.45,w:3.6,h:0.3,fontSize:11.5,bold:true,color:PPT.AMESC,
+      fontFace:PPT.F,isTextBox:true,margin:0});
+    s.addText(pa+"% das trocas tendem a antecipar",{x:0.9,y:y+0.75,w:3.6,h:0.3,
+      fontSize:10.5,color:PPT.CZ,fontFace:PPT.F,isTextBox:true,margin:0});
+    s.addShape("rect",{x:4.75,y:y+0.18,w:0.02,h:0.8,fill:{color:PPT.LINHA},line:{color:PPT.LINHA}});
+    s.addText(acao,{x:5.0,y:y+0.25,w:7.4,h:0.7,fontSize:12.5,color:PPT.CZM,
+      fontFace:PPT.F,isTextBox:true,margin:0,valign:"middle"});
+  });
+  s.addText("Alavanca comum a todas as famílias: reduzir o lead time de recuperação. Cada mês a menos libera unidades do parque diretamente.",
+    {x:0.6,y:6.3,w:12.1,h:0.4,fontSize:12,bold:true,italic:true,color:PPT.PRETO,
+     fontFace:PPT.F,isTextBox:true,margin:0});
+  _pRodape(s,n);
+
+  // ---------- 13 LIMITACOES ----------
+  s=pptx.addSlide();s.background={color:PPT.BR};n=13;
+  _pTitulo(s,"Premissas e limitações declaradas",
+    "Registrar o que o modelo não cobre fortalece o que ele cobre");
+  [["Taxa de refugo","Não modelada pela ferramenta. O estudo dimensiona parque; a previsão de compra usa uma premissa informada."],
+   ["Classificação de falha","Depende do preenchimento do campo Motivo no histórico. Registros mal preenchidos entram como falha."],
+   ["Tratamento das trocas planejadas","O ajuste estatístico das suspensões está em refinamento e tende a elevar o η."],
+   ["Modos de falha","O ideal é uma curva por modo de falha. Hoje há uma curva por componente."],
+   ["Média operacional","Média única de "+D.media+" h/dia para toda a frota, sem sazonalidade de utilização."],
+   ["Mudança de frota","Entrada ou desmobilização de equipamentos altera parque e cronograma."]
+  ].forEach(function(l,i){
+    const col=i%2,row=Math.floor(i/2),x=0.6+col*6.2,y=1.6+row*1.62;
+    _pCard(s,x,y,5.9,1.4);
+    s.addShape("ellipse",{x:x+0.28,y:y+0.5,w:0.4,h:0.4,fill:{color:PPT.AM},line:{color:PPT.AM}});
+    s.addText(String(i+1),{x:x+0.28,y:y+0.5,w:0.4,h:0.4,fontSize:12,bold:true,
+      color:PPT.PRETO,fontFace:PPT.F,isTextBox:true,margin:0,align:"center",valign:"middle"});
+    s.addText(l[0],{x:x+0.85,y:y+0.18,w:4.85,h:0.35,fontSize:12.5,bold:true,color:PPT.PRETO,
+      fontFace:PPT.F,isTextBox:true,margin:0});
+    s.addText(l[1],{x:x+0.85,y:y+0.53,w:4.85,h:0.75,fontSize:11,color:PPT.CZM,
+      fontFace:PPT.F,isTextBox:true,margin:0});
+  });
+  _pRodape(s,n);
+
+  // ---------- 14 FECHAMENTO ----------
+  s=pptx.addSlide();s.background={color:PPT.PRETO};
+  s.addShape("rect",{x:0,y:7.34,w:13.3,h:0.16,fill:{color:PPT.AM},line:{color:PPT.AM}});
+  s.addText("Em resumo",{x:0.9,y:1.3,w:11,h:0.6,fontSize:15,bold:true,color:PPT.AM,
+    fontFace:PPT.F,isTextBox:true,margin:0,charSpacing:1});
+  const picoAno=D.anos.reduce((a,b)=>D.parqueAno[b]>D.parqueAno[a]?b:a,D.anos[0]);
+  [[D.pTotal+" unidades","no parque de reserva — "+D.pCiclo+" de ciclo e "+D.pSeg+" de segurança"],
+   ["Pico em "+picoAno,"com "+D.parqueAno[picoAno]+" unidades simultaneamente necessárias"],
+   [totGeral+" compras","no horizonte: "+D.pTotal+" de parque e "+(totGeral-D.pTotal)+" de reposição"],
+   [D.NS+"%","de nível de serviço — cobertura de "+D.NS+" de cada 100 cenários simulados"]
+  ].forEach(function(r,i){
+    const y=2.15+i*1.12;
+    s.addText(r[0],{x:0.9,y:y,w:3.4,h:0.55,fontSize:22,bold:true,color:PPT.AM,
+      fontFace:PPT.F,isTextBox:true,margin:0,valign:"middle"});
+    s.addText(r[1],{x:4.5,y:y,w:7.9,h:0.55,fontSize:14,color:"D9DAD7",fontFace:PPT.F,
+      isTextBox:true,margin:0,valign:"middle"});
+    if(i<3)s.addShape("rect",{x:0.9,y:y+0.72,w:11.5,h:0.01,
+      fill:{color:PPT.CZM},line:{color:PPT.CZM}});
+  });
+  s.addText("Sotreq  |  Gestão de Frotas e Componentes  ·  Engenharia de Confiabilidade e Planejamento",
+    {x:0.9,y:6.75,w:11.5,h:0.35,fontSize:11,color:PPT.CZ,fontFace:PPT.F,isTextBox:true,margin:0});
+
+  pptx.writeFile({fileName:"Apresentacao_GFC_"+new Date().toISOString().slice(0,10)+".pptx"});
+}
+// ==================== FIM APRESENTACAO ====================
 
 // ==================== BASE ONLINE (GITHUB PRIVADO) ====================
 function setBadge(estado,txt){const b=document.getElementById('baseBadge');if(!b)return;b.className='base-badge '+(estado||'');b.innerText=txt;}
