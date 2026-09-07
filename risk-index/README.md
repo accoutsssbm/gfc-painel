@@ -1,0 +1,1 @@
+# Risk Index\n\nPainel publicado a partir do projeto REI. A base operacional e o modelo de entradas permanecem no projeto local/Supabase; este repositório versiona a interface.\n\n- Arquitetura: `ARQUITETURA_REI_SEM_N8N_SUPABASE_CODEX.md`\n- Banco: `accoutsssbm/gfc-dados/supabase/schema.sql`\n- Entrada padrão: `ENTRADAS_COMPLEMENTARES_RISK_INDEX.xlsx`\n
