@@ -1,4 +1,4 @@
-name: Skills transfer - batch A
+name: Skills transfer - batch B
 on:
   push:
     branches: [skills-transfer-2026-11-21]
@@ -14,20 +14,19 @@ jobs:
       max-parallel: 6
       matrix:
         include:
-          - {repo: "frappe/gantt", branch: "master", slug: "frappe__gantt"}
-          - {repo: "pdfarranger/pdfarranger", branch: "main", slug: "pdfarranger__pdfarranger"}
-          - {repo: "mebjas/html5-qrcode", branch: "master", slug: "mebjas__html5-qrcode"}
-          - {repo: "motion-canvas/motion-canvas", branch: "main", slug: "motion-canvas__motion-canvas"}
-          - {repo: "kimai/kimai", branch: "main", slug: "kimai__kimai"}
-          - {repo: "tesseract-ocr/tesseract", branch: "main", slug: "tesseract-ocr__tesseract"}
-          - {repo: "ggml-org/whisper.cpp", branch: "master", slug: "ggml-org__whisper.cpp"}
-          - {repo: "mlc-ai/web-llm", branch: "main", slug: "mlc-ai__web-llm"}
-          - {repo: "LosaLosSantos/aurelio-finance", branch: "main", slug: "LosaLosSantos__aurelio-finance"}
-          - {repo: "CopilotKit/OpenDots", branch: "main", slug: "CopilotKit__OpenDots"}
-          - {repo: "mvanhorn/last30days-skill", branch: "main", slug: "mvanhorn__last30days-skill"}
-          - {repo: "mjmirza/app-store-compliance", branch: "main", slug: "mjmirza__app-store-compliance"}
-          - {repo: "obra/superpowers", branch: "main", slug: "obra__superpowers"}
-          - {repo: "HKUDS/CLI-Anything", branch: "main", slug: "HKUDS__CLI-Anything"}
+          - {repo: "keystonejs/keystone", branch: "main", slug: "keystonejs__keystone"}
+          - {repo: "saltcorn/saltcorn", branch: "master", slug: "saltcorn__saltcorn"}
+          - {repo: "frappe/hrms", branch: "develop", slug: "frappe__hrms"}
+          - {repo: "BookStackApp/BookStack", branch: "development", slug: "BookStackApp__BookStack"}
+          - {repo: "rclone/rclone", branch: "master", slug: "rclone__rclone"}
+          - {repo: "dream-num/univer", branch: "dev", slug: "dream-num__univer"}
+          - {repo: "getlago/lago", branch: "main", slug: "getlago__lago"}
+          - {repo: "excalidraw/excalidraw", branch: "master", slug: "excalidraw__excalidraw"}
+          - {repo: "xyflow/xyflow", branch: "main", slug: "xyflow__xyflow"}
+          - {repo: "microsoft/playwright", branch: "main", slug: "microsoft__playwright"}
+          - {repo: "XiaoYouChR/Ghost-Downloader-3", branch: "main", slug: "XiaoYouChR__Ghost-Downloader-3"}
+          - {repo: "zhouxiaoka/autoclip", branch: "main", slug: "zhouxiaoka__autoclip"}
+          - {repo: "jingyaogong/minimind", branch: "master", slug: "jingyaogong__minimind"}
     env:
       REPO: ${{ matrix.repo }}
       SOURCE_BRANCH: ${{ matrix.branch }}
