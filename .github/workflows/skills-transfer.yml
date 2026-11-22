@@ -14,20 +14,20 @@ jobs:
       max-parallel: 6
       matrix:
         include:
-      - {repo: "frappe/gantt", branch: "master", slug: "frappe__gantt"}
-      - {repo: "pdfarranger/pdfarranger", branch: "main", slug: "pdfarranger__pdfarranger"}
-      - {repo: "mebjas/html5-qrcode", branch: "master", slug: "mebjas__html5-qrcode"}
-      - {repo: "motion-canvas/motion-canvas", branch: "main", slug: "motion-canvas__motion-canvas"}
-      - {repo: "kimai/kimai", branch: "main", slug: "kimai__kimai"}
-      - {repo: "tesseract-ocr/tesseract", branch: "main", slug: "tesseract-ocr__tesseract"}
-      - {repo: "ggml-org/whisper.cpp", branch: "master", slug: "ggml-org__whisper.cpp"}
-      - {repo: "mlc-ai/web-llm", branch: "main", slug: "mlc-ai__web-llm"}
-      - {repo: "LosaLosSantos/aurelio-finance", branch: "main", slug: "LosaLosSantos__aurelio-finance"}
-      - {repo: "CopilotKit/OpenDots", branch: "main", slug: "CopilotKit__OpenDots"}
-      - {repo: "mvanhorn/last30days-skill", branch: "main", slug: "mvanhorn__last30days-skill"}
-      - {repo: "mjmirza/app-store-compliance", branch: "main", slug: "mjmirza__app-store-compliance"}
-      - {repo: "obra/superpowers", branch: "main", slug: "obra__superpowers"}
-      - {repo: "HKUDS/CLI-Anything", branch: "main", slug: "HKUDS__CLI-Anything"}
+          - {repo: "frappe/gantt", branch: "master", slug: "frappe__gantt"}
+          - {repo: "pdfarranger/pdfarranger", branch: "main", slug: "pdfarranger__pdfarranger"}
+          - {repo: "mebjas/html5-qrcode", branch: "master", slug: "mebjas__html5-qrcode"}
+          - {repo: "motion-canvas/motion-canvas", branch: "main", slug: "motion-canvas__motion-canvas"}
+          - {repo: "kimai/kimai", branch: "main", slug: "kimai__kimai"}
+          - {repo: "tesseract-ocr/tesseract", branch: "main", slug: "tesseract-ocr__tesseract"}
+          - {repo: "ggml-org/whisper.cpp", branch: "master", slug: "ggml-org__whisper.cpp"}
+          - {repo: "mlc-ai/web-llm", branch: "main", slug: "mlc-ai__web-llm"}
+          - {repo: "LosaLosSantos/aurelio-finance", branch: "main", slug: "LosaLosSantos__aurelio-finance"}
+          - {repo: "CopilotKit/OpenDots", branch: "main", slug: "CopilotKit__OpenDots"}
+          - {repo: "mvanhorn/last30days-skill", branch: "main", slug: "mvanhorn__last30days-skill"}
+          - {repo: "mjmirza/app-store-compliance", branch: "main", slug: "mjmirza__app-store-compliance"}
+          - {repo: "obra/superpowers", branch: "main", slug: "obra__superpowers"}
+          - {repo: "HKUDS/CLI-Anything", branch: "main", slug: "HKUDS__CLI-Anything"}
     env:
       REPO: ${{ matrix.repo }}
       SOURCE_BRANCH: ${{ matrix.branch }}
