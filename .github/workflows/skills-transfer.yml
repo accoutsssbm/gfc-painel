@@ -1,4 +1,4 @@
-name: Skills transfer - batch C1
+name: Skills transfer - batch C2
 on:
   push:
     branches: [skills-transfer-2026-11-21]
@@ -14,13 +14,12 @@ jobs:
       max-parallel: 6
       matrix:
         include:
-          - {repo: "elementalsouls/Claude-BugHunter", branch: "main", slug: "elementalsouls__Claude-BugHunter"}
-          - {repo: "blakeblackshear/frigate", branch: "dev", slug: "blakeblackshear__frigate"}
-          - {repo: "GibbonEdu/core", branch: "v31.0.00", slug: "GibbonEdu__core"}
-          - {repo: "toeverything/AFFiNE", branch: "canary", slug: "toeverything__AFFiNE"}
-          - {repo: "heygen-com/hyperframes", branch: "main", slug: "heygen-com__hyperframes"}
-          - {repo: "earthtojake/text-to-cad", branch: "main", slug: "earthtojake__text-to-cad"}
-          - {repo: "opencv/opencv", branch: "5.x", slug: "opencv__opencv"}
+          - {repo: "refinedev/refine", branch: "main", slug: "refinedev__refine"}
+          - {repo: "frappe/frappe", branch: "develop", slug: "frappe__frappe"}
+          - {repo: "calcom/cal.com", branch: "main", slug: "calcom__cal.com"}
+          - {repo: "maplibre/maplibre-gl-js", branch: "main", slug: "maplibre__maplibre-gl-js"}
+          - {repo: "PaddlePaddle/PaddleOCR", branch: "main", slug: "PaddlePaddle__PaddleOCR"}
+          - {repo: "jgraph/drawio", branch: "dev", slug: "jgraph__drawio"}
     env:
       REPO: ${{ matrix.repo }}
       SOURCE_BRANCH: ${{ matrix.branch }}
