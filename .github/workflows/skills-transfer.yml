@@ -1,0 +1,38 @@
+name: Skills transfer - smoke test
+on:
+  push:
+    branches: [skills-transfer-2026-11-21]
+    paths: ['.github/workflows/skills-transfer.yml']
+permissions:
+  contents: read
+jobs:
+  verify-download:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Download one public project and verify ZIP
+        shell: bash
+        run: |
+          mkdir -p export
+          python3 - <<'PY'
+          from urllib.request import urlopen, Request
+          from pathlib import Path
+          import zipfile, hashlib
+          url="https://codeload.github.com/receiptline/receiptline/zip/refs/heads/master"
+          target=Path("export/receiptline__receiptline.zip")
+          req=Request(url,headers={"User-Agent":"github-actions-skills-backup"})
+          with urlopen(req,timeout=120) as r, target.open("wb") as f:
+              while chunk:=r.read(1024*1024): f.write(chunk)
+          with zipfile.ZipFile(target) as z:
+              if z.testzip() is not None: raise ValueError("Corrupt ZIP")
+              print(f"ZIP verified; {len(z.namelist())} files, {target.stat().st_size} bytes")
+          print("SHA256:",hashlib.sha256(target.read_bytes()).hexdigest())
+          PY
+      - name: Package verified repository
+        uses: actions/upload-artifact@v4
+        with:
+          name: receiptline-source-zip
+          path: export/receiptline__receiptline.zip
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 1
