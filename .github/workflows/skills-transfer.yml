@@ -1,4 +1,4 @@
-name: Skills transfer - smoke test
+name: Skills transfer - batch A
 on:
   push:
     branches: [skills-transfer-2026-11-21]
@@ -6,33 +6,73 @@ on:
 permissions:
   contents: read
 jobs:
-  verify-download:
+  export:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      max-parallel: 6
+      matrix:
+        include:
+      - {repo: "frappe/gantt", branch: "master", slug: "frappe__gantt"}
+      - {repo: "pdfarranger/pdfarranger", branch: "main", slug: "pdfarranger__pdfarranger"}
+      - {repo: "mebjas/html5-qrcode", branch: "master", slug: "mebjas__html5-qrcode"}
+      - {repo: "motion-canvas/motion-canvas", branch: "main", slug: "motion-canvas__motion-canvas"}
+      - {repo: "kimai/kimai", branch: "main", slug: "kimai__kimai"}
+      - {repo: "tesseract-ocr/tesseract", branch: "main", slug: "tesseract-ocr__tesseract"}
+      - {repo: "ggml-org/whisper.cpp", branch: "master", slug: "ggml-org__whisper.cpp"}
+      - {repo: "mlc-ai/web-llm", branch: "main", slug: "mlc-ai__web-llm"}
+      - {repo: "LosaLosSantos/aurelio-finance", branch: "main", slug: "LosaLosSantos__aurelio-finance"}
+      - {repo: "CopilotKit/OpenDots", branch: "main", slug: "CopilotKit__OpenDots"}
+      - {repo: "mvanhorn/last30days-skill", branch: "main", slug: "mvanhorn__last30days-skill"}
+      - {repo: "mjmirza/app-store-compliance", branch: "main", slug: "mjmirza__app-store-compliance"}
+      - {repo: "obra/superpowers", branch: "main", slug: "obra__superpowers"}
+      - {repo: "HKUDS/CLI-Anything", branch: "main", slug: "HKUDS__CLI-Anything"}
+    env:
+      REPO: ${{ matrix.repo }}
+      SOURCE_BRANCH: ${{ matrix.branch }}
+      SLUG: ${{ matrix.slug }}
     steps:
-      - name: Download one public project and verify ZIP
+      - name: Download and verify source ZIP
         shell: bash
         run: |
           mkdir -p export
           python3 - <<'PY'
-          from urllib.request import urlopen, Request
+          import os,time,json,hashlib,zipfile
           from pathlib import Path
-          import zipfile, hashlib
-          url="https://codeload.github.com/receiptline/receiptline/zip/refs/heads/master"
-          target=Path("export/receiptline__receiptline.zip")
-          req=Request(url,headers={"User-Agent":"github-actions-skills-backup"})
-          with urlopen(req,timeout=120) as r, target.open("wb") as f:
-              while chunk:=r.read(1024*1024): f.write(chunk)
-          with zipfile.ZipFile(target) as z:
-              if z.testzip() is not None: raise ValueError("Corrupt ZIP")
-              print(f"ZIP verified; {len(z.namelist())} files, {target.stat().st_size} bytes")
-          print("SHA256:",hashlib.sha256(target.read_bytes()).hexdigest())
+          from urllib.parse import quote
+          from urllib.request import Request,urlopen
+          repo,branch,slug=(os.environ[s] for s in ('REPO','SOURCE_BRANCH','SLUG'))
+          url='https://codeload.github.com/'+repo+'/zip/refs/heads/'+quote(branch,safe='')
+          dest=Path('export')/(slug+'.zip')
+          last=None
+          for attempt in range(3):
+              try:
+                  req=Request(url,headers={'User-Agent':'github-actions-source-export'})
+                  with urlopen(req,timeout=240) as r, dest.open('wb') as f:
+                      while True:
+                          b=r.read(1024*1024)
+                          if not b: break
+                          f.write(b)
+                  with zipfile.ZipFile(dest) as z:
+                      if z.testzip() is not None: raise ValueError('ZIP has bad CRC')
+                      n=len(z.namelist())
+                  print('Verified',repo,branch,dest.stat().st_size,'bytes',n,'entries')
+                  break
+              except Exception as e:
+                  last=e
+                  print('Failed attempt',attempt+1,repr(e))
+                  dest.unlink(missing_ok=True)
+                  if attempt==2: raise
+                  time.sleep(3*(attempt+1))
+          meta={'repo':repo,'branch':branch,'zip':dest.name,'size':dest.stat().st_size,'sha256':hashlib.sha256(dest.read_bytes()).hexdigest()}
+          (Path('export')/'source-info.json').write_text(json.dumps(meta),encoding='utf8')
           PY
-      - name: Package verified repository
+      - name: Upload verified ZIP as GitHub Actions artifact
         uses: actions/upload-artifact@v4
         with:
-          name: receiptline-source-zip
-          path: export/receiptline__receiptline.zip
+          name: source-${{ matrix.slug }}
+          path: export/*
           if-no-files-found: error
           compression-level: 0
           retention-days: 1
