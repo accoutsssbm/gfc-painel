@@ -1,4 +1,4 @@
-name: Skills transfer - batch B
+name: Skills transfer - batch C1
 on:
   push:
     branches: [skills-transfer-2026-11-21]
@@ -14,19 +14,13 @@ jobs:
       max-parallel: 6
       matrix:
         include:
-          - {repo: "keystonejs/keystone", branch: "main", slug: "keystonejs__keystone"}
-          - {repo: "saltcorn/saltcorn", branch: "master", slug: "saltcorn__saltcorn"}
-          - {repo: "frappe/hrms", branch: "develop", slug: "frappe__hrms"}
-          - {repo: "BookStackApp/BookStack", branch: "development", slug: "BookStackApp__BookStack"}
-          - {repo: "rclone/rclone", branch: "master", slug: "rclone__rclone"}
-          - {repo: "dream-num/univer", branch: "dev", slug: "dream-num__univer"}
-          - {repo: "getlago/lago", branch: "main", slug: "getlago__lago"}
-          - {repo: "excalidraw/excalidraw", branch: "master", slug: "excalidraw__excalidraw"}
-          - {repo: "xyflow/xyflow", branch: "main", slug: "xyflow__xyflow"}
-          - {repo: "microsoft/playwright", branch: "main", slug: "microsoft__playwright"}
-          - {repo: "XiaoYouChR/Ghost-Downloader-3", branch: "main", slug: "XiaoYouChR__Ghost-Downloader-3"}
-          - {repo: "zhouxiaoka/autoclip", branch: "main", slug: "zhouxiaoka__autoclip"}
-          - {repo: "jingyaogong/minimind", branch: "master", slug: "jingyaogong__minimind"}
+          - {repo: "elementalsouls/Claude-BugHunter", branch: "main", slug: "elementalsouls__Claude-BugHunter"}
+          - {repo: "blakeblackshear/frigate", branch: "dev", slug: "blakeblackshear__frigate"}
+          - {repo: "GibbonEdu/core", branch: "v31.0.00", slug: "GibbonEdu__core"}
+          - {repo: "toeverything/AFFiNE", branch: "canary", slug: "toeverything__AFFiNE"}
+          - {repo: "heygen-com/hyperframes", branch: "main", slug: "heygen-com__hyperframes"}
+          - {repo: "earthtojake/text-to-cad", branch: "main", slug: "earthtojake__text-to-cad"}
+          - {repo: "opencv/opencv", branch: "5.x", slug: "opencv__opencv"}
     env:
       REPO: ${{ matrix.repo }}
       SOURCE_BRANCH: ${{ matrix.branch }}
